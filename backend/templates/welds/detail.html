@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ item.number }}</h1>
+  <p>Estado: {{ item.status }}</p>
+  <p>Proyecto: {{ item.project }}</p>
+  <p><a href="/ui/welds/">Volver</a></p>
+{% endblock %}

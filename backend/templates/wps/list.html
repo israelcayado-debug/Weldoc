@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>WPS</h1>
+  <form method="get">
+    <input type="text" name="q" placeholder="Buscar codigo" value="{{ request.GET.q }}">
+    <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
+    <button type="submit">Buscar</button>
+  </form>
+  <p><a href="/ui/wps/new/">Nuevo WPS</a></p>
+  <ul>
+    {% for item in items %}
+      <li><a href="/ui/wps/{{ item.id }}/">{{ item.code }}</a> ({{ item.status }})</li>
+    {% empty %}
+      <li>Sin registros.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

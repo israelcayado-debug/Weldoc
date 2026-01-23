@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Plano {{ item.code }}</h1>
+  <p>Proyecto: {{ item.project }}</p>
+  <p>Revision: {{ item.revision }}</p>
+  <p>
+    Archivo:
+    {% if item.file_path %}
+      <a href="/media/{{ item.file_path }}">{{ item.file_path }}</a>
+    {% else %}
+      -
+    {% endif %}
+  </p>
+  <p>Estado: {{ item.status }}</p>
+  <p>
+    <a href="/ui/welds/drawings/{{ item.id }}/edit/">Editar</a> |
+    <a href="/ui/welds/drawings/">Volver</a>
+  </p>
+{% endblock %}

@@ -1,0 +1,71 @@
+# Indice de documentacion
+
+## Vision y alcance
+- SPEC.md
+- ROADMAP.md
+- BACKLOG_ESTIMATES.md
+- TECHNICAL_BREAKDOWN.md
+- TECHNICAL_BREAKDOWN_PHASE2_3.md
+
+## Bootstrap
+- backend/README.md
+- infra/README.md
+- .env.example
+
+## Datos y reglas
+- ERD.md
+- ERD_MERMAID.md
+- schema.sql
+- MIGRATIONS.md
+- FIELD_CONVENTIONS.md
+- openapi.yaml
+- NUMBERING.md
+- NUMBERING_CONFIG.md
+- VALIDATION_RULES.md
+- RULE_ENGINE.md
+- RULE_EXAMPLES.md
+- VARIABLE_MAPPING.md
+- BUSINESS_VALIDATIONS.md
+
+## WPS/WPQ
+- WPS_WPQ_API.md
+- WORKFLOW_API.md
+
+## Weld mapping y soldaduras
+- WELDING_API.md
+- GEOMETRY_FORMAT.md
+- WELD_ATTRIBUTE_SPEC.md
+- WELD_ATTRIBUTE_API.md
+- WELD_WORKFLOW.md
+- WELD_ASSIGNMENT.md
+- WELD_ASSIGNMENT_API.md
+- WELD_CLOSE_SERVICE.md
+
+## Continuidad y alertas
+- WELDER_CONTINUITY.md
+- WELDER_CONTINUITY_SERVICE.md
+- WELDER_CONTINUITY_FLOW.md
+- ALERTS_POLICY.md
+- ALERTS_JOB.md
+- NOTIFICATIONS_API.md
+
+## Reportes y exportaciones
+- REPORTS_API.md
+- REPORTS_EXTENDED.md
+
+## Fase 2
+- NDE_PWHT_PRESSURE.md
+- DOCUMENT_CONTROL.md
+- BULK_IMPORT.md
+- PHASE2_API.md
+
+## Fase 3
+- INTEGRATIONS_FLOW.md
+- INTEGRATIONS_API.md
+- PHASE3_API.md
+- QUEUE_WORKERS.md
+
+## Seguridad y despliegue
+- PERMISSIONS_MATRIX.md
+- AUDIT_EVENTS.md
+- DEPLOYMENT.md

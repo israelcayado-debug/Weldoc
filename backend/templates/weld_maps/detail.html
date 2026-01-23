@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Welding Map {{ item.drawing.code }}</h1>
+  <p>Proyecto: {{ item.project }}</p>
+  <p>Plano: {{ item.drawing }}</p>
+  <p>Estado: {{ item.status }}</p>
+  <p>
+    <a href="/ui/welds/weld-maps/{{ item.id }}/edit/">Editar</a> |
+    <a href="/ui/welds/weld-maps/">Volver</a>
+  </p>
+{% endblock %}

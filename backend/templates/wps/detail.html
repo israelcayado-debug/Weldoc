@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ item.code }}</h1>
+  <p>Norma: {{ item.standard }}</p>
+  <p>Estado: {{ item.status }}</p>
+  <p>Proyecto: {{ item.project }}</p>
+  <p><a href="/ui/wps/">Volver</a></p>
+{% endblock %}

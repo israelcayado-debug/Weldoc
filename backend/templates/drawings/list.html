@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Planos</h1>
+  <form method="get">
+    <input type="text" name="q" placeholder="Buscar codigo o revision" value="{{ request.GET.q }}">
+    <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
+    <button type="submit">Buscar</button>
+  </form>
+  <p><a href="/ui/welds/drawings/new/">Nuevo plano</a></p>
+  <ul>
+    {% for item in items %}
+      <li><a href="/ui/welds/drawings/{{ item.id }}/">{{ item.code }}</a> ({{ item.revision }}, {{ item.status }})</li>
+    {% empty %}
+      <li>Sin registros.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}
