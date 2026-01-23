@@ -23,6 +23,17 @@ Si prefieres, usa el script:
 backend\run_dev.bat
 ```
 
+## Variables de entorno
+
+Valores opcionales (defaults en settings):
+
+```
+DJANGO_SECRET_KEY=dev-only-change-me
+DJANGO_SETTINGS_MODULE=config.settings.dev
+```
+
+Puedes copiar `.env.example` y ajustar lo necesario.
+
 ## Estructura
 
 - `backend/`: Django + API.
