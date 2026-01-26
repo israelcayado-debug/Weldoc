@@ -12,9 +12,28 @@
       -
     {% endif %}
   </p>
-  <p>Estado: {{ item.status }}</p>
   <p>
     <a href="/ui/welds/drawings/{{ item.id }}/edit/">Editar</a> |
+    <a href="/ui/welds/drawings/{{ item.id }}/new-revision/">Nueva revision</a> |
     <a href="/ui/welds/drawings/">Volver</a>
   </p>
+
+  <h2>Revisiones</h2>
+  <ul>
+    {% for rev in revisions %}
+      <li>
+        <a href="/ui/welds/drawings/{{ rev.id }}/">{{ rev.revision }}</a>
+        {% if rev.id == item.id %}(actual){% endif %}
+        {% if rev.id != item.id %}
+          <form method="post" action="/ui/welds/drawings/{{ item.id }}/copy-marks/" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="source_id" value="{{ rev.id }}">
+            <button type="submit">Copiar marcas</button>
+          </form>
+        {% endif %}
+      </li>
+    {% empty %}
+      <li>Sin revisiones.</li>
+    {% endfor %}
+  </ul>
 {% endblock %}

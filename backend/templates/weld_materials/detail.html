@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Material {{ item.heat_number }}</h1>
+  <p>Soldadura: {{ item.weld }}</p>
+  <p>Material: {{ item.material }}</p>
+  <p>
+    <a href="/ui/welds/weld-materials/{{ item.id }}/edit/">Editar</a> |
+    <a href="/ui/welds/weld-materials/">Volver</a>
+  </p>
+{% endblock %}

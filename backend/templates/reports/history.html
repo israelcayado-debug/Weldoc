@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Historial de exportaciones</h1>
+  <p><a href="/ui/reports/exports/">Nueva exportacion</a></p>
+
+  <h2>Reportes</h2>
+  <ul>
+    {% for item in reports %}
+      <li>
+        {{ item.type }} - {{ item.project }}
+        {% if item.file_path %}
+          - <a href="/api/exports/{{ item.id }}/download">Descargar</a>
+        {% else %}
+          - pendiente
+        {% endif %}
+      </li>
+    {% empty %}
+      <li>Sin reportes.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Dossiers</h2>
+  <ul>
+    {% for item in dossiers %}
+      <li>
+        Dossier - {{ item.project }}
+        {% if item.file_path %}
+          - <a href="/api/exports/{{ item.id }}/download">Descargar</a>
+        {% else %}
+          - pendiente
+        {% endif %}
+      </li>
+    {% empty %}
+      <li>Sin dossiers.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

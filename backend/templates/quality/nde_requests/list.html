@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>END (Solicitudes)</h1>
+  <form method="get">
+    <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
+    <input type="text" name="status" placeholder="Estado" value="{{ request.GET.status }}">
+    <button type="submit">Buscar</button>
+  </form>
+  <p><a href="/ui/quality/nde-requests/new/">Nueva solicitud</a></p>
+  <ul>
+    {% for item in items %}
+      <li>
+        <a href="/ui/quality/nde-requests/{{ item.id }}/">{{ item.method }}</a>
+        ({{ item.status }})
+      </li>
+    {% empty %}
+      <li>Sin registros.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

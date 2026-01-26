@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Export</h1>
+  {% if item %}
+    <p>ID: {{ item.id }}</p>
+    <p>Archivo: {{ item.file_path }}</p>
+    {% if item.file_path %}
+      <p><a href="/api/exports/{{ item.id }}/download">Descargar</a></p>
+    {% endif %}
+  {% else %}
+    <p>No encontrado.</p>
+  {% endif %}
+  <p><a href="/ui/reports/exports/">Volver</a></p>
+{% endblock %}

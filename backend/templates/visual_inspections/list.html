@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Inspecciones visuales</h1>
+  <form method="get">
+    <input type="text" name="weld_id" placeholder="Weld ID" value="{{ request.GET.weld_id }}">
+    <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
+    <input type="text" name="stage" placeholder="Etapa" value="{{ request.GET.stage }}">
+    <button type="submit">Buscar</button>
+  </form>
+  <p><a href="/ui/welds/visual-inspections/new/">Nueva inspeccion</a></p>
+  <ul>
+    {% for item in items %}
+      <li><a href="/ui/welds/visual-inspections/{{ item.id }}/">{{ item.weld.number }}</a> ({{ item.stage }}, {{ item.result }})</li>
+    {% empty %}
+      <li>Sin registros.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Inspeccion {{ item.weld.number }}</h1>
+  <p>Etapa: {{ item.stage }}</p>
+  <p>Resultado: {{ item.result }}</p>
+  <p>Inspector: {{ item.inspector|default:"-" }}</p>
+  <p>Notas: {{ item.notes|default:"-" }}</p>
+  <p>
+    <a href="/ui/welds/visual-inspections/{{ item.id }}/edit/">Editar</a> |
+    <a href="/ui/welds/visual-inspections/">Volver</a>
+  </p>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Pruebas de presion</h1>
+  <form method="get">
+    <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
+    <button type="submit">Buscar</button>
+  </form>
+  <p><a href="/ui/quality/pressure-tests/new/">Nueva prueba</a></p>
+  <ul>
+    {% for item in items %}
+      <li><a href="/ui/quality/pressure-tests/{{ item.id }}/">{{ item.line_id }}</a> ({{ item.result }})</li>
+    {% empty %}
+      <li>Sin registros.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

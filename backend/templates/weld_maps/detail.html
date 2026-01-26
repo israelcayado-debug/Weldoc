@@ -5,8 +5,230 @@
   <p>Proyecto: {{ item.project }}</p>
   <p>Plano: {{ item.drawing }}</p>
   <p>Estado: {{ item.status }}</p>
+  {% if item.drawing.file_path %}
+    <p>
+      Archivo: <a href="/media/{{ item.drawing.file_path }}">{{ item.drawing.file_path }}</a>
+    </p>
+  {% endif %}
+
+  <h2>Marcas</h2>
+  <ul>
+    {% for mark in marks %}
+      <li>{{ mark.weld.number }} - {{ mark.created_at }} - {{ mark.geometry }}</li>
+    {% empty %}
+      <li>Sin marcas.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Agregar marcas</h2>
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <ul>
+        {% for err in form.non_field_errors %}
+          <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <p>
+      <label for="id_weld_number">Numero de soldadura (opcional)</label>
+      {{ form.weld_number }}
+      <button type="button" id="add-mark">Agregar marca</button>
+    </p>
+
+    {% if item.drawing.file_path %}
+      <div style="position: relative; display: inline-block; border: 1px solid #ccc;">
+        <img id="drawing-image" src="/media/{{ item.drawing.file_path }}" alt="Plano" style="display: block; max-width: 100%; height: auto;">
+        <canvas id="mark-canvas" style="position: absolute; left: 0; top: 0;"></canvas>
+      </div>
+      <p>
+        <button type="button" id="clear-mark">Limpiar marca</button>
+      </p>
+      {{ form.geometry_json.as_hidden }}
+      {{ form.marks_json.as_hidden }}
+      <p id="geometry-preview" style="font-family: monospace;"></p>
+
+      <h3>Marcas pendientes</h3>
+      <table id="pending-table" style="border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #ccc; padding: 4px;">Numero</th>
+            <th style="border: 1px solid #ccc; padding: 4px;">Centro</th>
+            <th style="border: 1px solid #ccc; padding: 4px;">Radio</th>
+            <th style="border: 1px solid #ccc; padding: 4px;">Accion</th>
+          </tr>
+        </thead>
+        <tbody id="pending-body">
+          <tr><td colspan="4">Sin marcas pendientes.</td></tr>
+        </tbody>
+      </table>
+    {% else %}
+      <p>
+        <label for="id_geometry_json">Geometry JSON</label>
+        {{ form.geometry_json }}
+      </p>
+    {% endif %}
+
+    <p>
+      <label for="id_attributes_json">Atributos JSON (lista)</label>
+      {{ form.attributes_json }}
+    </p>
+    <button type="submit">Guardar</button>
+  </form>
+
   <p>
     <a href="/ui/welds/weld-maps/{{ item.id }}/edit/">Editar</a> |
     <a href="/ui/welds/weld-maps/">Volver</a>
   </p>
+
+  {% if item.drawing.file_path %}
+  <script>
+    (function() {
+      var img = document.getElementById("drawing-image");
+      var canvas = document.getElementById("mark-canvas");
+      var input = document.getElementById("id_geometry_json");
+      var marksInput = document.getElementById("id_marks_json");
+      var preview = document.getElementById("geometry-preview");
+      var clearBtn = document.getElementById("clear-mark");
+      var addBtn = document.getElementById("add-mark");
+      var numberInput = document.getElementById("id_weld_number");
+      var pendingBody = document.getElementById("pending-body");
+      var ctx = canvas.getContext("2d");
+      var isDrawing = false;
+      var startX = 0;
+      var startY = 0;
+      var circle = null;
+      var marks = [];
+
+      function syncCanvasSize() {
+        canvas.width = img.clientWidth;
+        canvas.height = img.clientHeight;
+        redraw();
+      }
+
+      function redraw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#d00";
+        ctx.lineWidth = 2;
+        if (circle) {
+          ctx.beginPath();
+          ctx.arc(circle.cx, circle.cy, circle.r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        marks.forEach(function(mark) {
+          ctx.beginPath();
+          ctx.arc(mark.geometry.cx, mark.geometry.cy, mark.geometry.r, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+      }
+
+      function renderPending() {
+        if (!pendingBody) return;
+        if (!marks.length) {
+          pendingBody.innerHTML = '<tr><td colspan="4">Sin marcas pendientes.</td></tr>';
+          return;
+        }
+        pendingBody.innerHTML = marks.map(function(mark, idx) {
+          var c = mark.geometry;
+          var label = mark.number || "auto";
+          return '<tr>' +
+            '<td style="border: 1px solid #ccc; padding: 4px;">' + label + '</td>' +
+            '<td style="border: 1px solid #ccc; padding: 4px;">(' + c.cx + ', ' + c.cy + ')</td>' +
+            '<td style="border: 1px solid #ccc; padding: 4px;">' + c.r + '</td>' +
+            '<td style="border: 1px solid #ccc; padding: 4px;">' +
+              '<button type="button" class="edit-mark" data-index="' + idx + '">Editar</button> ' +
+              '<button type="button" class="remove-mark" data-index="' + idx + '">Eliminar</button>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function setCircle(cx, cy, r) {
+        circle = {
+          type: "circle",
+          cx: Math.round(cx),
+          cy: Math.round(cy),
+          r: Math.round(r)
+        };
+        input.value = JSON.stringify(circle);
+        preview.textContent = input.value;
+        redraw();
+      }
+
+      img.addEventListener("load", syncCanvasSize);
+      window.addEventListener("resize", syncCanvasSize);
+
+      canvas.addEventListener("mousedown", function(e) {
+        var rectCanvas = canvas.getBoundingClientRect();
+        startX = e.clientX - rectCanvas.left;
+        startY = e.clientY - rectCanvas.top;
+        isDrawing = true;
+      });
+
+      canvas.addEventListener("mousemove", function(e) {
+        if (!isDrawing) return;
+        var rectCanvas = canvas.getBoundingClientRect();
+        var x = e.clientX - rectCanvas.left;
+        var y = e.clientY - rectCanvas.top;
+        var dx = x - startX;
+        var dy = y - startY;
+        var r = Math.sqrt(dx * dx + dy * dy);
+        setCircle(startX, startY, r);
+      });
+
+      canvas.addEventListener("mouseup", function() {
+        isDrawing = false;
+      });
+
+      canvas.addEventListener("mouseleave", function() {
+        isDrawing = false;
+      });
+
+      clearBtn.addEventListener("click", function() {
+        circle = null;
+        input.value = "";
+        preview.textContent = "";
+        redraw();
+      });
+
+      addBtn.addEventListener("click", function() {
+        var number = numberInput.value.trim();
+        if (!circle) {
+          return;
+        }
+        marks.push({ number: number || null, geometry: circle });
+        marksInput.value = JSON.stringify(marks);
+        numberInput.value = "";
+        circle = null;
+        input.value = "";
+        preview.textContent = marksInput.value;
+        redraw();
+        renderPending();
+      });
+
+      pendingBody.addEventListener("click", function(e) {
+        var target = e.target;
+        if (!target.classList.contains("remove-mark") && !target.classList.contains("edit-mark")) return;
+        var idx = parseInt(target.getAttribute("data-index"), 10);
+        if (isNaN(idx)) return;
+        var selected = marks.splice(idx, 1)[0];
+        if (target.classList.contains("edit-mark") && selected) {
+          numberInput.value = selected.number || "";
+          circle = selected.geometry;
+          input.value = JSON.stringify(circle);
+          preview.textContent = input.value;
+        }
+        marksInput.value = marks.length ? JSON.stringify(marks) : "";
+        redraw();
+        renderPending();
+      });
+
+      if (img.complete) {
+        syncCanvasSize();
+      }
+      renderPending();
+    })();
+  </script>
+  {% endif %}
 {% endblock %}

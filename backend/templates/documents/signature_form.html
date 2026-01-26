@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <form method="post">
+    {% csrf_token %}
+    <p>
+      <label for="id_signer">Firmante</label>
+      {{ form.signer }}
+    </p>
+    <p>
+      <label for="id_signature_text">Firma (texto)</label>
+      {{ form.signature_text }}
+    </p>
+    {{ form.document_revision }}
+    {{ form.signature_blob }}
+    <button type="submit">Guardar</button>
+  </form>
+  <p><a href="/ui/documents/{{ revision.document_id }}/">Volver</a></p>
+{% endblock %}

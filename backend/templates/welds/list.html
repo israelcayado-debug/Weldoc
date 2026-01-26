@@ -5,12 +5,37 @@
   <form method="get">
     <input type="text" name="q" placeholder="Buscar numero" value="{{ request.GET.q }}">
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
+    <input type="text" name="status" placeholder="Estado" value="{{ request.GET.status }}">
+    <input type="text" name="drawing_id" placeholder="Drawing ID" value="{{ request.GET.drawing_id }}">
+    <select name="inspection_status">
+      <option value="">Inspeccion</option>
+      <option value="pass" {% if request.GET.inspection_status == "pass" %}selected{% endif %}>PASS</option>
+      <option value="rework" {% if request.GET.inspection_status == "rework" %}selected{% endif %}>REWORK</option>
+      <option value="fail" {% if request.GET.inspection_status == "fail" %}selected{% endif %}>FAIL</option>
+      <option value="none" {% if request.GET.inspection_status == "none" %}selected{% endif %}>SIN INSPECCION</option>
+    </select>
     <button type="submit">Buscar</button>
   </form>
   <p><a href="/ui/welds/new/">Nueva soldadura</a></p>
   <ul>
     {% for item in items %}
-      <li><a href="/ui/welds/{{ item.id }}/">{{ item.number }}</a> ({{ item.status }})</li>
+      <li>
+        <a href="/ui/welds/{{ item.id }}/">{{ item.number }}</a>
+        ({{ item.status }})
+        - <a href="/ui/welds/weld-attributes/?weld_id={{ item.id }}">A: {{ item.attribute_count }}</a>
+        - <a href="/ui/welds/weld-materials/?weld_id={{ item.id }}">M: {{ item.material_count }}</a>
+        - <a href="/ui/welds/weld-consumables/?weld_id={{ item.id }}">C: {{ item.consumable_count }}</a>
+        - <a href="/ui/welds/visual-inspections/?weld_id={{ item.id }}">I: {{ item.inspection_count }}</a>
+        {% if item.inspection_status == "fail" %}
+          <span style="color: #b00020; font-weight: bold;">FAIL</span>
+        {% elif item.inspection_status == "rework" %}
+          <span style="color: #d97706; font-weight: bold;">REWORK</span>
+        {% elif item.inspection_status == "pass" %}
+          <span style="color: #0f766e; font-weight: bold;">PASS</span>
+        {% else %}
+          <span style="color: #6b7280;">NO INSPECTION</span>
+        {% endif %}
+      </li>
     {% empty %}
       <li>Sin registros.</li>
     {% endfor %}

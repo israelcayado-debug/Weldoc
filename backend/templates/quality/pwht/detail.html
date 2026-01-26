@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>PWHT</h1>
+  <p>Soldadura: {{ item.weld }}</p>
+  <p>Resultado: {{ item.result }}</p>
+  <p>Parametros: {{ item.cycle_params_json }}</p>
+  {% if item.report_path %}
+    <p><a href="/media/{{ item.report_path }}">Reporte</a></p>
+  {% endif %}
+  <p>
+    <a href="/ui/quality/pwht/{{ item.id }}/edit/">Editar</a> |
+    <a href="/ui/quality/pwht/">Volver</a>
+  </p>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Exportaciones</h1>
+  <p><a href="/ui/reports/history/">Ver historial</a></p>
+  {% if message %}
+    <p>{{ message }}</p>
+  {% endif %}
+  {% if export_id %}
+    <p>
+      Export generado: <a href="/api/exports/{{ export_id }}/download">{{ export_file }}</a>
+    </p>
+  {% endif %}
+
+  <h2>Welding List (XLSX)</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="welding_list">
+    <select name="project_id">
+      <option value="">Proyecto</option>
+      {% for project in projects %}
+        <option value="{{ project.id }}" {% if selected_project == project.id|stringformat:"s" %}selected{% endif %}>
+          {{ project.name }} ({{ project.code }})
+        </option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Estado</option>
+      <option value="planned" {% if selected_status == "planned" %}selected{% endif %}>planned</option>
+      <option value="in_progress" {% if selected_status == "in_progress" %}selected{% endif %}>in_progress</option>
+      <option value="completed" {% if selected_status == "completed" %}selected{% endif %}>completed</option>
+      <option value="repair" {% if selected_status == "repair" %}selected{% endif %}>repair</option>
+    </select>
+    <input type="text" name="drawing_id" placeholder="Drawing ID" value="{{ filters.drawing_id }}">
+    <input type="date" name="date_from" value="{{ filters.date_from }}">
+    <input type="date" name="date_to" value="{{ filters.date_to }}">
+    <button type="submit">Generar</button>
+  </form>
+
+  <h2>Qualifications (XLSX)</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="qualifications">
+    <select name="project_id">
+      <option value="">Proyecto</option>
+      {% for project in projects %}
+        <option value="{{ project.id }}" {% if selected_project == project.id|stringformat:"s" %}selected{% endif %}>
+          {{ project.name }} ({{ project.code }})
+        </option>
+      {% endfor %}
+    </select>
+    <select name="qual_type">
+      <option value="WPS">WPS</option>
+      <option value="WPQ">WPQ</option>
+    </select>
+    <button type="submit">Generar</button>
+  </form>
+
+  <h2>Dossier (PDF)</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="dossier">
+    <select name="project_id">
+      <option value="">Proyecto</option>
+      {% for project in projects %}
+        <option value="{{ project.id }}" {% if selected_project == project.id|stringformat:"s" %}selected{% endif %}>
+          {{ project.name }} ({{ project.code }})
+        </option>
+      {% endfor %}
+    </select>
+    <label><input type="checkbox" name="include" value="welding_list"> Welding List</label>
+    <label><input type="checkbox" name="include" value="qualifications"> Qualifications</label>
+    <label><input type="checkbox" name="include" value="inspections"> Inspecciones</label>
+    <label><input type="checkbox" name="include" value="materials"> Materiales</label>
+    <label><input type="checkbox" name="include" value="consumables"> Consumibles</label>
+    <button type="submit">Generar</button>
+  </form>
+{% endblock %}

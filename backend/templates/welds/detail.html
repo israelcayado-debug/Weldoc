@@ -4,5 +4,56 @@
   <h1>{{ item.number }}</h1>
   <p>Estado: {{ item.status }}</p>
   <p>Proyecto: {{ item.project }}</p>
+
+  <h2>Trazabilidad</h2>
+  <p>
+    <a href="/ui/welds/weld-attributes/?weld_id={{ item.id }}">Ver atributos</a> |
+    <a href="/ui/welds/weld-attributes/new/?weld_id={{ item.id }}">Agregar atributo</a>
+  </p>
+  <ul>
+    {% for attr in attributes %}
+      <li>{{ attr.name }}: {{ attr.value }}</li>
+    {% empty %}
+      <li>Sin atributos.</li>
+    {% endfor %}
+  </ul>
+
+  <p>
+    <a href="/ui/welds/weld-materials/?weld_id={{ item.id }}">Ver materiales</a> |
+    <a href="/ui/welds/weld-materials/new/?weld_id={{ item.id }}">Agregar material</a>
+  </p>
+  <ul>
+    {% for mat in materials %}
+      <li>{{ mat.material }} (Heat {{ mat.heat_number }})</li>
+    {% empty %}
+      <li>Sin materiales.</li>
+    {% endfor %}
+  </ul>
+
+  <p>
+    <a href="/ui/welds/weld-consumables/?weld_id={{ item.id }}">Ver consumibles</a> |
+    <a href="/ui/welds/weld-consumables/new/?weld_id={{ item.id }}">Agregar consumible</a>
+  </p>
+  <ul>
+    {% for cons in consumables %}
+      <li>{{ cons.consumable }} (Batch {{ cons.batch|default:"-" }})</li>
+    {% empty %}
+      <li>Sin consumibles.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Inspecciones visuales</h2>
+  <p>
+    <a href="/ui/welds/visual-inspections/?weld_id={{ item.id }}">Ver inspecciones</a> |
+    <a href="/ui/welds/visual-inspections/new/?weld_id={{ item.id }}">Agregar inspeccion</a>
+  </p>
+  <ul>
+    {% for insp in inspections %}
+      <li>{{ insp.stage }} - {{ insp.result }} - {{ insp.at }}</li>
+    {% empty %}
+      <li>Sin inspecciones.</li>
+    {% endfor %}
+  </ul>
+
   <p><a href="/ui/welds/">Volver</a></p>
 {% endblock %}

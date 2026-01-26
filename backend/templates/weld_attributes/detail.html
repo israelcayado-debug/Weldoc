@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Atributo {{ item.name }}</h1>
+  <p>Soldadura: {{ item.weld }}</p>
+  <p>Valor: {{ item.value }}</p>
+  <p>
+    <a href="/ui/welds/weld-attributes/{{ item.id }}/edit/">Editar</a> |
+    <a href="/ui/welds/weld-attributes/">Volver</a>
+  </p>
+{% endblock %}
