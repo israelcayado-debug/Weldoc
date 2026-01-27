@@ -20,8 +20,11 @@ class DrawingViewSet(BaseRoleViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         project_id = self.request.query_params.get("project_id")
+        equipment_id = self.request.query_params.get("equipment_id")
         if project_id:
             qs = qs.filter(project_id=project_id)
+        if equipment_id:
+            qs = qs.filter(equipment_id=equipment_id)
         return qs
 
 
@@ -95,7 +98,7 @@ class WeldViewSet(BaseRoleViewSet):
         weld = self.get_object()
         if weld.status not in ("planned", "in_progress", "repair"):
             return Response(
-                {"code": "invalid_status", "message": "Estado no permite cerrar."},
+                {"code": "invalid_status", "message": "Status does not allow closing."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         last_post = (
@@ -105,7 +108,7 @@ class WeldViewSet(BaseRoleViewSet):
         )
         if last_post and last_post.result == "fail":
             return Response(
-                {"code": "post_weld_fail", "message": "Inspeccion post_weld en fail."},
+                {"code": "post_weld_fail", "message": "Post-weld inspection failed."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         closed_at = request.data.get("closed_at")

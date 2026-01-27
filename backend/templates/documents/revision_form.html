@@ -5,7 +5,7 @@
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Guardar</button>
+    <button type="submit">Save</button>
   </form>
-  <p><a href="/ui/documents/{{ document.id }}/">Volver</a></p>
+  <p><a href="/ui/documents/{{ document.id }}/">Back</a></p>
 {% endblock %}

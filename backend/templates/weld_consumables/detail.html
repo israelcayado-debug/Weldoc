@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Consumible</h1>
-  <p>Soldadura: {{ item.weld }}</p>
-  <p>Consumible: {{ item.consumable }}</p>
+  <h1>Consumable</h1>
+  <p>Weld: {{ item.weld }}</p>
+  <p>Consumable: {{ item.consumable }}</p>
   <p>Batch: {{ item.batch|default:"-" }}</p>
   <p>
-    <a href="/ui/welds/weld-consumables/{{ item.id }}/edit/">Editar</a> |
-    <a href="/ui/welds/weld-consumables/">Volver</a>
+    <a href="/ui/welds/weld-consumables/{{ item.id }}/edit/">Edit</a> |
+    <a href="/ui/welds/weld-consumables/">Back</a>
   </p>
 {% endblock %}

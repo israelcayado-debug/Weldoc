@@ -40,11 +40,14 @@ def _log_audit(action, entity, entity_id, request, diff=None):
 def document_list(request):
     q = request.GET.get("q")
     project_id = request.GET.get("project_id")
-    items = models.Document.objects.select_related("project").all().order_by("title")
+    equipment_id = request.GET.get("equipment_id")
+    items = models.Document.objects.select_related("project", "equipment").all().order_by("title")
     if q:
         items = items.filter(title__icontains=q)
     if project_id:
         items = items.filter(project_id=project_id)
+    if equipment_id:
+        items = items.filter(equipment_id=equipment_id)
     return render(request, "documents/list.html", {"items": items})
 
 
@@ -79,7 +82,7 @@ def document_create(request):
             return redirect("document_detail", pk=item.pk)
     else:
         form = DocumentForm()
-    return render(request, "documents/form.html", {"form": form, "title": "Nuevo documento"})
+    return render(request, "documents/form.html", {"form": form, "title": "New document"})
 
 
 @login_required
@@ -92,7 +95,7 @@ def document_edit(request, pk):
             return redirect("document_detail", pk=item.pk)
     else:
         form = DocumentForm(instance=item)
-    return render(request, "documents/form.html", {"form": form, "title": "Editar documento"})
+    return render(request, "documents/form.html", {"form": form, "title": "Edit document"})
 
 
 @login_required
@@ -125,7 +128,7 @@ def document_revision_create(request, pk):
     return render(
         request,
         "documents/revision_form.html",
-        {"form": form, "title": "Nueva revision", "document": document},
+        {"form": form, "title": "New revision", "document": document},
     )
 
 
@@ -183,7 +186,7 @@ def document_approval_create(request, pk):
     return render(
         request,
         "documents/approval_form.html",
-        {"form": form, "title": "Nuevo aprobador", "revision": revision},
+        {"form": form, "title": "New approver", "revision": revision},
     )
 
 
@@ -222,5 +225,5 @@ def document_signature_create(request, pk):
     return render(
         request,
         "documents/signature_form.html",
-        {"form": form, "title": "Nueva firma", "revision": revision},
+        {"form": form, "title": "New signature", "revision": revision},
     )

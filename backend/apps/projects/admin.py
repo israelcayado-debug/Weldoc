@@ -10,13 +10,19 @@ class ClientAdmin(admin.ModelAdmin):
 
 @admin.register(models.Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "status", "units")
-    search_fields = ("name", "code")
+    list_display = ("name", "code", "purchase_order", "status", "units")
+    search_fields = ("name", "code", "purchase_order")
 
 
 @admin.register(models.ProjectUser)
 class ProjectUserAdmin(admin.ModelAdmin):
     list_display = ("project", "user", "role")
+
+
+@admin.register(models.ProjectEquipment)
+class ProjectEquipmentAdmin(admin.ModelAdmin):
+    list_display = ("project", "name", "fabrication_code", "status")
+    search_fields = ("name", "fabrication_code")
 
 
 @admin.register(models.AuditLog)

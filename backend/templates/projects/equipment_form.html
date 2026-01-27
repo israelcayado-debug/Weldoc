@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p class="muted">Project: {{ project.name }}</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save</button>
+  </form>
+  <p><a href="/ui/projects/{{ project.id }}/equipment/">Back</a></p>
+{% endblock %}

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>END (Solicitudes)</h1>
+  <h1>NDE Requests</h1>
   <form method="get">
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
-    <input type="text" name="status" placeholder="Estado" value="{{ request.GET.status }}">
-    <button type="submit">Buscar</button>
+    <input type="text" name="status" placeholder="Status" value="{{ request.GET.status }}">
+    <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/quality/nde-requests/new/">Nueva solicitud</a></p>
+  <p><a href="/ui/quality/nde-requests/new/">New request</a></p>
   <ul>
     {% for item in items %}
       <li>
@@ -15,7 +15,7 @@
         ({{ item.status }})
       </li>
     {% empty %}
-      <li>Sin registros.</li>
+      <li>No records.</li>
     {% endfor %}
   </ul>
 {% endblock %}

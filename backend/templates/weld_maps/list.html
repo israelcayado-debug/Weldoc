@@ -3,20 +3,24 @@
 {% block content %}
   <h1>Welding Maps</h1>
   <form method="get">
-    <input type="text" name="q" placeholder="Buscar plano" value="{{ request.GET.q }}">
+    <input type="text" name="q" placeholder="Search drawing" value="{{ request.GET.q }}">
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
     <input type="text" name="drawing_id" placeholder="Drawing ID" value="{{ request.GET.drawing_id }}">
-    <button type="submit">Buscar</button>
+    <input type="text" name="equipment_id" placeholder="Equipment ID" value="{{ request.GET.equipment_id }}">
+    <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/welds/weld-maps/new/">Nuevo welding map</a></p>
+  <p><a href="/ui/welds/weld-maps/new/">New welding map</a></p>
   <ul>
     {% for item in items %}
       <li>
         <a href="/ui/welds/weld-maps/{{ item.id }}/">{{ item.drawing.code }}</a>
         ({{ item.status }})
+        {% if item.drawing.equipment %}
+          - {{ item.drawing.equipment.name }}
+        {% endif %}
       </li>
     {% empty %}
-      <li>Sin registros.</li>
+      <li>No records.</li>
     {% endfor %}
   </ul>
 {% endblock %}

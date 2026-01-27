@@ -5,6 +5,12 @@ from django.db import models
 class Document(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey("projects.Project", on_delete=models.CASCADE)
+    equipment = models.ForeignKey(
+        "projects.ProjectEquipment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     type = models.CharField(max_length=50)
     title = models.CharField(max_length=200)
     status = models.CharField(max_length=30, default="active")

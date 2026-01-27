@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Customers</h1>
+  <form method="get">
+    <input type="text" name="q" placeholder="Search customer" value="{{ request.GET.q }}">
+    <select name="status">
+      <option value="">Status</option>
+      <option value="active" {% if request.GET.status == "active" %}selected{% endif %}>Active</option>
+      <option value="archived" {% if request.GET.status == "archived" %}selected{% endif %}>Archived</option>
+    </select>
+    <button type="submit">Search</button>
+  </form>
+  <p><a href="/ui/projects/clients/new/">New customer</a></p>
+  <ul>
+    {% for item in items %}
+      <li>
+        {{ item.name }} ({{ item.status }})
+        <a href="/ui/projects/clients/{{ item.id }}/edit/">Edit</a>
+      </li>
+    {% empty %}
+      <li>No records.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -43,6 +43,24 @@ class WpsVariableSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class WpsProcessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.WpsProcess
+        fields = '__all__'
+
+
+class WpsVariableDefinitionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.WpsVariableDefinition
+        fields = '__all__'
+
+
+class WpsVariableValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.WpsVariableValue
+        fields = '__all__'
+
+
 class PqrResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.PqrResult

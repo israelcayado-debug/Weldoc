@@ -2,8 +2,28 @@
 
 {% block content %}
   <h1>{{ item.code }}</h1>
-  <p>Norma: {{ item.standard }}</p>
-  <p>Estado: {{ item.status }}</p>
-  <p>Proyecto: {{ item.project }}</p>
-  <p><a href="/ui/wps/">Volver</a></p>
+  <p>Standard: {{ item.standard }}</p>
+  <p>Status: {{ item.status }}</p>
+  <p>Impact test: {{ item.impact_test|yesno:"Yes,No" }}</p>
+  <p>Project: {{ item.project }}</p>
+  <p>
+    <a href="/ui/wps/{{ item.id }}/edit/">Edit</a> |
+    <a href="/ui/wps/{{ item.id }}/qw482/">Edit QW-482 Form</a> |
+    <a href="/ui/wps/{{ item.id }}/processes/">Manage processes</a> |
+    <a href="/ui/wps/">Back</a>
+  </p>
+
+  <h2>Processes</h2>
+  <ul>
+    {% for process in processes %}
+      <li>
+        {{ process.process_code }}
+        {% if process.special_process %}({{ process.special_process }}){% endif %}
+        - <a href="/ui/wps/processes/{{ process.id }}/variables/">Variables</a>
+        - <a href="/ui/wps/processes/{{ process.id }}/edit/">Edit</a>
+      </li>
+    {% empty %}
+      <li>No processes.</li>
+    {% endfor %}
+  </ul>
 {% endblock %}

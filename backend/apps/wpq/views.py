@@ -56,7 +56,7 @@ class WpqViewSet(BaseRoleViewSet):
         wpq = self.get_object()
         if wpq.status not in ("draft", "in_review"):
             return Response(
-                {"code": "invalid_status", "message": "Estado no permite aprobar."},
+                {"code": "invalid_status", "message": "Status does not allow approval."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not models.WpqProcess.objects.filter(wpq=wpq).exists():

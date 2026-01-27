@@ -41,8 +41,11 @@ class DocumentViewSet(BaseRoleViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         project_id = self.request.query_params.get("project_id")
+        equipment_id = self.request.query_params.get("equipment_id")
         if project_id:
             qs = qs.filter(project_id=project_id)
+        if equipment_id:
+            qs = qs.filter(equipment_id=equipment_id)
         return qs
 
 
@@ -75,7 +78,7 @@ class DocumentRevisionViewSet(BaseRoleViewSet):
         revision = self.get_object()
         if revision.status not in ("draft", "in_review"):
             return Response(
-                {"code": "invalid_status", "message": "Estado no permite aprobar."},
+                {"code": "invalid_status", "message": "Status does not allow approval."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         models.DocumentRevision.objects.filter(
@@ -94,7 +97,7 @@ class DocumentRevisionViewSet(BaseRoleViewSet):
         revision = self.get_object()
         if revision.status not in ("draft", "in_review"):
             return Response(
-                {"code": "invalid_status", "message": "Estado no permite rechazar."},
+                {"code": "invalid_status", "message": "Status does not allow rejection."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         revision.status = "rejected"
@@ -115,7 +118,7 @@ class DocumentApprovalViewSet(BaseRoleViewSet):
         approval = self.get_object()
         if approval.status != "pending":
             return Response(
-                {"code": "invalid_status", "message": "Estado no permite aprobar."},
+                {"code": "invalid_status", "message": "Status does not allow approval."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         approval.status = "approved"
@@ -128,7 +131,7 @@ class DocumentApprovalViewSet(BaseRoleViewSet):
         approval = self.get_object()
         if approval.status != "pending":
             return Response(
-                {"code": "invalid_status", "message": "Estado no permite rechazar."},
+                {"code": "invalid_status", "message": "Status does not allow rejection."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         approval.status = "rejected"

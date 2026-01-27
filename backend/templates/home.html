@@ -1,24 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>WeldDoc</h1>
-  <ul>
-    <li><a href="/admin/">Admin</a></li>
-    <li><a href="/api/">API</a></li>
-    <li><a href="/api/docs/">Swagger</a></li>
-    <li><a href="/ui/wps/">WPS</a></li>
-    <li><a href="/ui/wpq/">WPQ</a></li>
-    <li><a href="/ui/documents/">Documentos</a></li>
-    <li><a href="/ui/welds/">Soldaduras</a></li>
-    <li><a href="/ui/welds/drawings/">Planos</a></li>
-    <li><a href="/ui/welds/weld-maps/">Welding Maps</a></li>
-    <li><a href="/ui/welds/weld-attributes/">Atributos de soldadura</a></li>
-    <li><a href="/ui/welds/weld-materials/">Materiales de soldadura</a></li>
-    <li><a href="/ui/welds/weld-consumables/">Consumibles de soldadura</a></li>
-    <li><a href="/ui/welds/visual-inspections/">Inspecciones visuales</a></li>
-    <li><a href="/ui/reports/exports/">Exportaciones</a></li>
-    <li><a href="/ui/quality/nde-requests/">END</a></li>
-    <li><a href="/ui/quality/pwht/">PWHT</a></li>
-    <li><a href="/ui/quality/pressure-tests/">Pruebas de presion</a></li>
-  </ul>
+  <div class="card">
+    <h1>Dashboard</h1>
+    <p class="muted">System overview.</p>
+    <ul>
+      <li><a href="/ui/welds/">Welds and maps</a></li>
+      <li><a href="/ui/documents/">Documents</a></li>
+      <li><a href="/ui/reports/exports/">Reports and exports</a></li>
+    </ul>
+  </div>
+  <div class="card" style="margin-top: 16px;">
+    <h2>Main workflow</h2>
+    <ol>
+      <li>Create project and base standards.</li>
+      <li>Create drawings and generate the welding map.</li>
+      <li>Define WPS/PQR and qualifications.</li>
+      <li>Plan welds and inspections.</li>
+      <li>Generate dossier and exports.</li>
+    </ol>
+  </div>
 {% endblock %}

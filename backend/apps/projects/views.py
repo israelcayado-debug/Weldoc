@@ -34,6 +34,19 @@ class ProjectUserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsAdminRole]
 
 
+class ProjectEquipmentViewSet(viewsets.ModelViewSet):
+    queryset = models.ProjectEquipment.objects.all()
+    serializer_class = serializers.ProjectEquipmentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminRole]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        project_id = self.request.query_params.get("project_id")
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        return qs
+
+
 class AuditLogViewSet(viewsets.ModelViewSet):
     queryset = models.AuditLog.objects.all()
     serializer_class = serializers.AuditLogSerializer

@@ -1,18 +1,25 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Planos</h1>
+  <h1>Drawings</h1>
   <form method="get">
-    <input type="text" name="q" placeholder="Buscar codigo o revision" value="{{ request.GET.q }}">
+    <input type="text" name="q" placeholder="Search code or revision" value="{{ request.GET.q }}">
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
-    <button type="submit">Buscar</button>
+    <input type="text" name="equipment_id" placeholder="Equipment ID" value="{{ request.GET.equipment_id }}">
+    <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/welds/drawings/new/">Nuevo plano</a></p>
+  <p><a href="/ui/welds/drawings/new/">New drawing</a></p>
   <ul>
     {% for item in items %}
-      <li><a href="/ui/welds/drawings/{{ item.id }}/">{{ item.code }}</a> ({{ item.revision }}, {{ item.status }})</li>
+      <li>
+        <a href="/ui/welds/drawings/{{ item.id }}/">{{ item.code }}</a>
+        ({{ item.revision }}, {{ item.status }})
+        {% if item.equipment %}
+          - {{ item.equipment.name }}
+        {% endif %}
+      </li>
     {% empty %}
-      <li>Sin registros.</li>
+      <li>No records.</li>
     {% endfor %}
   </ul>
 {% endblock %}

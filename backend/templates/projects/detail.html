@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ item.name }}</h1>
+  <p class="muted">Project {{ item.code }} | {{ item.status }}</p>
+  <p>
+    Customer:
+    {% if item.client %}
+      {{ item.client.name }}
+    {% endif %}
+  </p>
+  <p>Purchase Order: {{ item.purchase_order|default_if_none:"" }}</p>
+  <p>Units: {{ item.units }}</p>
+  <p>Standards: {{ item.standard_set|join:", " }}</p>
+  <p><a href="/ui/projects/{{ item.id }}/edit/">Edit project</a></p>
+
+  <div class="card">
+    <h2>Summary</h2>
+    <ul>
+      <li>Drawings: {{ drawings }} (<a href="/ui/welds/drawings/?project_id={{ item.id }}">view</a>)</li>
+      <li>Weld maps: {{ weld_maps }} (<a href="/ui/welds/maps/?project_id={{ item.id }}">view</a>)</li>
+      <li>Welds: {{ welds }} (<a href="/ui/welds/?project_id={{ item.id }}">view</a>)</li>
+      <li>Documents: {{ documents }} (<a href="/ui/documents/?project_id={{ item.id }}">view</a>)</li>
+      <li>WPS: {{ wps_count }} (<a href="/ui/wps/?project_id={{ item.id }}">view</a>)</li>
+      <li>PQR: {{ pqr_count }} (<a href="/ui/wps/pqr/?project_id={{ item.id }}">view</a>)</li>
+      <li>NDE: {{ nde_requests }} (<a href="/ui/quality/nde-requests/?project_id={{ item.id }}">view</a>)</li>
+      <li>PWHT: {{ pwht_records }} (<a href="/ui/quality/pwht/?project_id={{ item.id }}">view</a>)</li>
+      <li>Pressure: {{ pressure_tests }} (<a href="/ui/quality/pressure-tests/?project_id={{ item.id }}">view</a>)</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Pressure equipment</h2>
+    <ul>
+      {% for equipment in project_equipment %}
+        <li>{{ equipment.name }} ({{ equipment.fabrication_code }}) - {{ equipment.status }}</li>
+      {% empty %}
+        <li>No equipment registered.</li>
+      {% endfor %}
+    </ul>
+    <p><a href="/ui/projects/{{ item.id }}/equipment/">Manage equipment</a></p>
+  </div>
+
+  <div class="card">
+    <h2>Project team</h2>
+    <ul>
+      {% for item in project_users %}
+        <li>{{ item.user.name }} - {{ item.role.name }}</li>
+      {% empty %}
+        <li>No users assigned.</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endblock %}

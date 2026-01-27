@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>WPS Processes - {{ wps.code }}</h1>
+  <p>
+    <a href="/ui/wps/{{ wps.id }}/processes/new/">Add process</a> |
+    <a href="/ui/wps/{{ wps.id }}/">Back</a>
+  </p>
+  <ul>
+    {% for process in processes %}
+      <li>
+        {{ process.process_code }}
+        {% if process.special_process %}({{ process.special_process }}){% endif %}
+        - <a href="/ui/wps/processes/{{ process.id }}/variables/">Variables</a>
+        - <a href="/ui/wps/processes/{{ process.id }}/edit/">Edit</a>
+      </li>
+    {% empty %}
+      <li>No processes.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Prueba de presion</h1>
-  <p>Proyecto: {{ item.project }}</p>
-  <p>Linea: {{ item.line_id }}</p>
-  <p>Tipo: {{ item.test_type }}</p>
-  <p>Presion: {{ item.pressure }}</p>
-  <p>Duracion: {{ item.duration_min }}</p>
-  <p>Resultado: {{ item.result }}</p>
+  <h1>Pressure Test</h1>
+  <p>Project: {{ item.project }}</p>
+  <p>Line: {{ item.line_id }}</p>
+  <p>Type: {{ item.test_type }}</p>
+  <p>Pressure: {{ item.pressure }}</p>
+  <p>Duration: {{ item.duration_min }}</p>
+  <p>Result: {{ item.result }}</p>
   {% if item.report_path %}
-    <p><a href="/media/{{ item.report_path }}">Reporte</a></p>
+    <p><a href="/media/{{ item.report_path }}">Report</a></p>
   {% endif %}
   <p>
-    <a href="/ui/quality/pressure-tests/{{ item.id }}/edit/">Editar</a> |
-    <a href="/ui/quality/pressure-tests/">Volver</a>
+    <a href="/ui/quality/pressure-tests/{{ item.id }}/edit/">Edit</a> |
+    <a href="/ui/quality/pressure-tests/">Back</a>
   </p>
 {% endblock %}

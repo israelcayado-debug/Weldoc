@@ -56,9 +56,19 @@ CREATE TABLE "Project" (
   client_id uuid REFERENCES "Client"(id),
   name varchar(200) NOT NULL,
   code varchar(100) NOT NULL UNIQUE,
+  purchase_order varchar(100),
   units varchar(20) NOT NULL DEFAULT 'metric',
   status varchar(30) NOT NULL DEFAULT 'active',
   standard_set varchar(30)[] NOT NULL DEFAULT ARRAY['ASME_IX']
+);
+
+CREATE TABLE "ProjectEquipment" (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id uuid NOT NULL REFERENCES "Project"(id),
+  name varchar(200) NOT NULL,
+  fabrication_code varchar(100) NOT NULL,
+  status varchar(30) NOT NULL DEFAULT 'active',
+  UNIQUE (project_id, fabrication_code)
 );
 
 CREATE TABLE "ProjectUser" (
@@ -82,6 +92,7 @@ CREATE TABLE "AuditLog" (
 CREATE TABLE "Document" (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id uuid NOT NULL REFERENCES "Project"(id),
+  equipment_id uuid REFERENCES "ProjectEquipment"(id),
   type varchar(50) NOT NULL,
   title varchar(200) NOT NULL,
   status varchar(30) NOT NULL DEFAULT 'active'
@@ -122,6 +133,7 @@ CREATE TABLE "Wps" (
   project_id uuid REFERENCES "Project"(id),
   code varchar(100) NOT NULL,
   standard varchar(30) NOT NULL,
+  impact_test boolean NOT NULL DEFAULT false,
   status varchar(30) NOT NULL DEFAULT 'draft'
 );
 
@@ -152,6 +164,40 @@ CREATE TABLE "WpsVariable" (
   name varchar(200) NOT NULL,
   value text NOT NULL,
   unit varchar(20)
+);
+
+CREATE TABLE "WpsProcess" (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  wps_id uuid NOT NULL REFERENCES "Wps"(id),
+  process_code varchar(20) NOT NULL,
+  special_process varchar(10),
+  "order" integer NOT NULL DEFAULT 1,
+  UNIQUE (wps_id, process_code)
+);
+
+CREATE TABLE "WpsVariableDefinition" (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  process_code varchar(20) NOT NULL,
+  special_process varchar(10),
+  category varchar(20) NOT NULL,
+  code varchar(50) NOT NULL,
+  name varchar(100) NOT NULL,
+  label varchar(200) NOT NULL,
+  data_type varchar(20) NOT NULL DEFAULT 'text',
+  unit varchar(20),
+  options_json jsonb,
+  change_note varchar(100),
+  paragraph varchar(50),
+  UNIQUE (process_code, special_process, code)
+);
+
+CREATE TABLE "WpsVariableValue" (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  wps_process_id uuid NOT NULL REFERENCES "WpsProcess"(id),
+  definition_id uuid NOT NULL REFERENCES "WpsVariableDefinition"(id),
+  value text,
+  unit varchar(20),
+  UNIQUE (wps_process_id, definition_id)
 );
 
 CREATE TABLE "PqrResult" (
@@ -199,6 +245,7 @@ CREATE TABLE "WpqTest" (
 CREATE TABLE "Drawing" (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id uuid NOT NULL REFERENCES "Project"(id),
+  equipment_id uuid REFERENCES "ProjectEquipment"(id),
   code varchar(100) NOT NULL,
   revision varchar(20) NOT NULL,
   file_path varchar(512) NOT NULL,

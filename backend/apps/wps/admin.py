@@ -22,7 +22,7 @@ class JointTypeAdmin(admin.ModelAdmin):
 
 @admin.register(models.Wps)
 class WpsAdmin(admin.ModelAdmin):
-    list_display = ("code", "standard", "status", "project")
+    list_display = ("code", "standard", "impact_test", "status", "project")
     search_fields = ("code",)
 
 
@@ -40,6 +40,22 @@ class WpsPqrLinkAdmin(admin.ModelAdmin):
 @admin.register(models.WpsVariable)
 class WpsVariableAdmin(admin.ModelAdmin):
     list_display = ("wps", "name", "value")
+
+
+@admin.register(models.WpsProcess)
+class WpsProcessAdmin(admin.ModelAdmin):
+    list_display = ("wps", "process_code", "special_process", "order")
+
+
+@admin.register(models.WpsVariableDefinition)
+class WpsVariableDefinitionAdmin(admin.ModelAdmin):
+    list_display = ("process_code", "special_process", "code", "category", "label")
+    search_fields = ("code", "label", "name")
+
+
+@admin.register(models.WpsVariableValue)
+class WpsVariableValueAdmin(admin.ModelAdmin):
+    list_display = ("wps_process", "definition", "value")
 
 
 @admin.register(models.PqrResult)

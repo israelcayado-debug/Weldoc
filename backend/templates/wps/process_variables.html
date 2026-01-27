@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>WPS Variables</h1>
+  <p class="muted">
+    WPS: {{ wps.code }} |
+    Process: {{ process.process_code }}
+    {% if process.special_process %}({{ process.special_process }}){% endif %}
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save</button>
+  </form>
+  <p><a href="/ui/wps/{{ wps.id }}/">Back</a></p>
+{% endblock %}

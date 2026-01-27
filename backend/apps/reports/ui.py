@@ -3,6 +3,7 @@ from pathlib import Path
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.conf import settings
+from django.utils import timezone
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from reportlab.lib.pagesizes import A4
@@ -98,11 +99,11 @@ def _export_dossier(project_id, include):
     dossier = models.Dossier.objects.create(
         project_id=project_id, config_json={"include": include}
     )
-    project_name = (
-        weld_models.Weld.objects.filter(project_id=project_id)
-        .values_list("project__name", flat=True)
-        .first()
-    )
+    project = project_models.Project.objects.select_related("client").filter(id=project_id).first()
+    project_name = project.name if project else None
+    project_number = project.code if project else ""
+    project_client = project.client.name if project and project.client else ""
+    project_po = (project.purchase_order or "") if project else ""
     file_name = f"dossier_{dossier.id}.pdf"
     dossier.file_path = file_name
     dossier.save(update_fields=["file_path"])
@@ -116,12 +117,21 @@ def _export_dossier(project_id, include):
 
     def draw_header_footer():
         pdf.setFont("Helvetica-Bold", 11)
-        pdf.drawString(2 * cm, height - 1.5 * cm, "Dossier de Soldadura")
+        pdf.drawString(2 * cm, height - 1.5 * cm, "Welding Dossier")
         pdf.setFont("Helvetica", 9)
-        pdf.drawString(2 * cm, height - 2.1 * cm, f"Proyecto: {project_name or 'Proyecto'}")
+        pdf.drawString(
+            2 * cm,
+            height - 2.1 * cm,
+            f"Project: {project_name or 'Project'} ({project_number})",
+        )
+        pdf.drawString(
+            2 * cm,
+            height - 2.7 * cm,
+            f"Customer: {project_client} | PO: {project_po}",
+        )
         pdf.drawRightString(width - 2 * cm, height - 1.5 * cm, timezone.now().date().isoformat())
         pdf.setFont("Helvetica", 9)
-        pdf.drawRightString(width - 2 * cm, 1.2 * cm, f"Pagina {page_num}")
+        pdf.drawRightString(width - 2 * cm, 1.2 * cm, f"Page {page_num}")
 
     draw_header_footer()
     y = height - 3 * cm
@@ -130,7 +140,7 @@ def _export_dossier(project_id, include):
     y -= 1.0 * cm
 
     pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(2 * cm, y, "Contenido")
+    pdf.drawString(2 * cm, y, "Contents")
     y -= 0.6 * cm
     pdf.setFont("Helvetica", 11)
     items = include or [
@@ -153,10 +163,10 @@ def _export_dossier(project_id, include):
     page_num += 1
     draw_header_footer()
     pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(2 * cm, height - 3 * cm, "Resumen")
+    pdf.drawString(2 * cm, height - 3 * cm, "Summary")
     pdf.setFont("Helvetica", 11)
     total_welds = weld_models.Weld.objects.filter(project_id=project_id).count()
-    pdf.drawString(2 * cm, height - 4 * cm, f"Total de soldaduras: {total_welds}")
+    pdf.drawString(2 * cm, height - 4 * cm, f"Total welds: {total_welds}")
 
     def add_section(title, headers, rows):
         nonlocal y
@@ -192,19 +202,19 @@ def _export_dossier(project_id, include):
             (w.number, w.status, w.drawing.code if w.drawing else "")
             for w in weld_models.Weld.objects.filter(project_id=project_id).select_related("drawing")
         ]
-        add_section("Welding List", ["Numero", "Estado", "Plano"], weld_rows)
+        add_section("Welding List", ["Number", "Status", "Drawing"], weld_rows)
 
     if not include or "qualifications" in include:
         wps_rows = [
             (w.code, w.status, w.standard)
             for w in wps_models.Wps.objects.filter(project_id=project_id)
         ]
-        add_section("WPS", ["Codigo", "Estado", "Norma"], wps_rows)
+        add_section("WPS", ["Code", "Status", "Standard"], wps_rows)
         wpq_rows = [
             (w.code, w.status, w.welder.name)
             for w in wpq_models.Wpq.objects.select_related("welder")
         ]
-        add_section("WPQ", ["Codigo", "Estado", "Soldador"], wpq_rows)
+        add_section("WPQ", ["Code", "Status", "Welder"], wpq_rows)
 
     if not include or "inspections" in include:
         insp_rows = [
@@ -213,7 +223,7 @@ def _export_dossier(project_id, include):
                 weld__project_id=project_id
             )
         ]
-        add_section("Inspecciones Visuales", ["Soldadura", "Etapa", "Resultado"], insp_rows)
+        add_section("Visual Inspections", ["Weld", "Stage", "Result"], insp_rows)
 
     if not include or "materials" in include:
         material_rows = [
@@ -222,7 +232,7 @@ def _export_dossier(project_id, include):
                 weld__project_id=project_id
             )
         ]
-        add_section("Materiales", ["Soldadura", "Material", "Heat"], material_rows)
+        add_section("Materials", ["Weld", "Material", "Heat"], material_rows)
 
     if not include or "consumables" in include:
         consumable_rows = [
@@ -231,7 +241,7 @@ def _export_dossier(project_id, include):
                 weld__project_id=project_id
             )
         ]
-        add_section("Consumibles", ["Soldadura", "Consumible", "Batch"], consumable_rows)
+        add_section("Consumables", ["Weld", "Consumable", "Batch"], consumable_rows)
 
     pdf.save()
     return dossier

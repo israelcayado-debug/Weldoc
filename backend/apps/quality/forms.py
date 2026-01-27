@@ -11,7 +11,7 @@ class NdeRequestForm(forms.ModelForm):
     def clean_status(self):
         status = self.cleaned_data["status"]
         if status not in ("requested", "in_progress", "completed", "cancelled"):
-            raise forms.ValidationError("Estado no valido.")
+            raise forms.ValidationError("Invalid status.")
         return status
 
 
@@ -28,7 +28,7 @@ class NdeResultForm(forms.ModelForm):
     def clean_result(self):
         result = self.cleaned_data["result"]
         if result not in ("accept", "reject", "repair"):
-            raise forms.ValidationError("Resultado no valido.")
+            raise forms.ValidationError("Invalid result.")
         return result
 
 
@@ -45,7 +45,7 @@ class PwhtRecordForm(forms.ModelForm):
     def clean_result(self):
         result = self.cleaned_data["result"]
         if result not in ("pass", "fail", "rework"):
-            raise forms.ValidationError("Resultado no valido.")
+            raise forms.ValidationError("Invalid result.")
         return result
 
 
@@ -70,5 +70,5 @@ class PressureTestForm(forms.ModelForm):
     def clean_result(self):
         result = self.cleaned_data["result"]
         if result not in ("pass", "fail", "retest"):
-            raise forms.ValidationError("Resultado no valido.")
+            raise forms.ValidationError("Invalid result.")
         return result

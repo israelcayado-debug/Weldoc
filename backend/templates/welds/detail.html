@@ -2,58 +2,58 @@
 
 {% block content %}
   <h1>{{ item.number }}</h1>
-  <p>Estado: {{ item.status }}</p>
-  <p>Proyecto: {{ item.project }}</p>
+  <p>Status: {{ item.status }}</p>
+  <p>Project: {{ item.project }}</p>
 
-  <h2>Trazabilidad</h2>
+  <h2>Traceability</h2>
   <p>
-    <a href="/ui/welds/weld-attributes/?weld_id={{ item.id }}">Ver atributos</a> |
-    <a href="/ui/welds/weld-attributes/new/?weld_id={{ item.id }}">Agregar atributo</a>
+    <a href="/ui/welds/weld-attributes/?weld_id={{ item.id }}">View attributes</a> |
+    <a href="/ui/welds/weld-attributes/new/?weld_id={{ item.id }}">Add attribute</a>
   </p>
   <ul>
     {% for attr in attributes %}
       <li>{{ attr.name }}: {{ attr.value }}</li>
     {% empty %}
-      <li>Sin atributos.</li>
+      <li>No attributes.</li>
     {% endfor %}
   </ul>
 
   <p>
-    <a href="/ui/welds/weld-materials/?weld_id={{ item.id }}">Ver materiales</a> |
-    <a href="/ui/welds/weld-materials/new/?weld_id={{ item.id }}">Agregar material</a>
+    <a href="/ui/welds/weld-materials/?weld_id={{ item.id }}">View materials</a> |
+    <a href="/ui/welds/weld-materials/new/?weld_id={{ item.id }}">Add material</a>
   </p>
   <ul>
     {% for mat in materials %}
       <li>{{ mat.material }} (Heat {{ mat.heat_number }})</li>
     {% empty %}
-      <li>Sin materiales.</li>
+      <li>No materials.</li>
     {% endfor %}
   </ul>
 
   <p>
-    <a href="/ui/welds/weld-consumables/?weld_id={{ item.id }}">Ver consumibles</a> |
-    <a href="/ui/welds/weld-consumables/new/?weld_id={{ item.id }}">Agregar consumible</a>
+    <a href="/ui/welds/weld-consumables/?weld_id={{ item.id }}">View consumables</a> |
+    <a href="/ui/welds/weld-consumables/new/?weld_id={{ item.id }}">Add consumable</a>
   </p>
   <ul>
     {% for cons in consumables %}
       <li>{{ cons.consumable }} (Batch {{ cons.batch|default:"-" }})</li>
     {% empty %}
-      <li>Sin consumibles.</li>
+      <li>No consumables.</li>
     {% endfor %}
   </ul>
 
-  <h2>Inspecciones visuales</h2>
+  <h2>Visual inspections</h2>
   <p>
-    <a href="/ui/welds/visual-inspections/?weld_id={{ item.id }}">Ver inspecciones</a> |
-    <a href="/ui/welds/visual-inspections/new/?weld_id={{ item.id }}">Agregar inspeccion</a>
+    <a href="/ui/welds/visual-inspections/?weld_id={{ item.id }}">View inspections</a> |
+    <a href="/ui/welds/visual-inspections/new/?weld_id={{ item.id }}">Add inspection</a>
   </p>
   <ul>
     {% for insp in inspections %}
       <li>{{ insp.stage }} - {{ insp.result }} - {{ insp.at }}</li>
     {% empty %}
-      <li>Sin inspecciones.</li>
+      <li>No inspections.</li>
     {% endfor %}
   </ul>
 
-  <p><a href="/ui/welds/">Volver</a></p>
+  <p><a href="/ui/welds/">Back</a></p>
 {% endblock %}

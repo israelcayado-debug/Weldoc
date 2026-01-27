@@ -5,16 +5,16 @@
   <form method="post">
     {% csrf_token %}
     <p>
-      <label for="id_signer">Firmante</label>
+      <label for="id_signer">Signer</label>
       {{ form.signer }}
     </p>
     <p>
-      <label for="id_signature_text">Firma (texto)</label>
+      <label for="id_signature_text">Signature (text)</label>
       {{ form.signature_text }}
     </p>
     {{ form.document_revision }}
     {{ form.signature_blob }}
-    <button type="submit">Guardar</button>
+    <button type="submit">Save</button>
   </form>
-  <p><a href="/ui/documents/{{ revision.document_id }}/">Volver</a></p>
+  <p><a href="/ui/documents/{{ revision.document_id }}/">Back</a></p>
 {% endblock %}

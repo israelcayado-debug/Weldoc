@@ -2,14 +2,14 @@
 
 {% block content %}
   <h1>PWHT</h1>
-  <p>Soldadura: {{ item.weld }}</p>
-  <p>Resultado: {{ item.result }}</p>
-  <p>Parametros: {{ item.cycle_params_json }}</p>
+  <p>Weld: {{ item.weld }}</p>
+  <p>Result: {{ item.result }}</p>
+  <p>Parameters: {{ item.cycle_params_json }}</p>
   {% if item.report_path %}
-    <p><a href="/media/{{ item.report_path }}">Reporte</a></p>
+    <p><a href="/media/{{ item.report_path }}">Report</a></p>
   {% endif %}
   <p>
-    <a href="/ui/quality/pwht/{{ item.id }}/edit/">Editar</a> |
-    <a href="/ui/quality/pwht/">Volver</a>
+    <a href="/ui/quality/pwht/{{ item.id }}/edit/">Edit</a> |
+    <a href="/ui/quality/pwht/">Back</a>
   </p>
 {% endblock %}

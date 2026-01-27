@@ -32,7 +32,7 @@ def wpq_create(request):
             return redirect("wpq_detail", pk=item.pk)
     else:
         form = WpqForm()
-    return render(request, "wpq/form.html", {"form": form, "title": "Nuevo WPQ"})
+    return render(request, "wpq/form.html", {"form": form, "title": "New WPQ"})
 
 
 @login_required
@@ -45,4 +45,4 @@ def wpq_edit(request, pk):
             return redirect("wpq_detail", pk=item.pk)
     else:
         form = WpqForm(instance=item)
-    return render(request, "wpq/form.html", {"form": form, "title": "Editar WPQ"})
+    return render(request, "wpq/form.html", {"form": form, "title": "Edit WPQ"})

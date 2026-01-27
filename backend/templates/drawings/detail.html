@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Plano {{ item.code }}</h1>
-  <p>Proyecto: {{ item.project }}</p>
+  <h1>Drawing {{ item.code }}</h1>
+  <p>Project: {{ item.project }}</p>
+  <p>
+    Equipment:
+    {% if item.equipment %}
+      {{ item.equipment.name }}
+    {% endif %}
+  </p>
   <p>Revision: {{ item.revision }}</p>
   <p>
-    Archivo:
+    File:
     {% if item.file_path %}
       <a href="/media/{{ item.file_path }}">{{ item.file_path }}</a>
     {% else %}
@@ -13,27 +19,27 @@
     {% endif %}
   </p>
   <p>
-    <a href="/ui/welds/drawings/{{ item.id }}/edit/">Editar</a> |
-    <a href="/ui/welds/drawings/{{ item.id }}/new-revision/">Nueva revision</a> |
-    <a href="/ui/welds/drawings/">Volver</a>
+    <a href="/ui/welds/drawings/{{ item.id }}/edit/">Edit</a> |
+    <a href="/ui/welds/drawings/{{ item.id }}/new-revision/">New revision</a> |
+    <a href="/ui/welds/drawings/">Back</a>
   </p>
 
-  <h2>Revisiones</h2>
+  <h2>Revisions</h2>
   <ul>
     {% for rev in revisions %}
       <li>
         <a href="/ui/welds/drawings/{{ rev.id }}/">{{ rev.revision }}</a>
-        {% if rev.id == item.id %}(actual){% endif %}
+        {% if rev.id == item.id %}(current){% endif %}
         {% if rev.id != item.id %}
           <form method="post" action="/ui/welds/drawings/{{ item.id }}/copy-marks/" style="display: inline;">
             {% csrf_token %}
             <input type="hidden" name="source_id" value="{{ rev.id }}">
-            <button type="submit">Copiar marcas</button>
+            <button type="submit">Copy marks</button>
           </form>
         {% endif %}
       </li>
     {% empty %}
-      <li>Sin revisiones.</li>
+      <li>No revisions.</li>
     {% endfor %}
   </ul>
 {% endblock %}

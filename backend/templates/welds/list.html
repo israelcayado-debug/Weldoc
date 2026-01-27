@@ -1,22 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Soldaduras</h1>
+  <h1>Welds</h1>
   <form method="get">
-    <input type="text" name="q" placeholder="Buscar numero" value="{{ request.GET.q }}">
+    <input type="text" name="q" placeholder="Search number" value="{{ request.GET.q }}">
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
-    <input type="text" name="status" placeholder="Estado" value="{{ request.GET.status }}">
+    <input type="text" name="status" placeholder="Status" value="{{ request.GET.status }}">
     <input type="text" name="drawing_id" placeholder="Drawing ID" value="{{ request.GET.drawing_id }}">
     <select name="inspection_status">
-      <option value="">Inspeccion</option>
+      <option value="">Inspection</option>
       <option value="pass" {% if request.GET.inspection_status == "pass" %}selected{% endif %}>PASS</option>
       <option value="rework" {% if request.GET.inspection_status == "rework" %}selected{% endif %}>REWORK</option>
       <option value="fail" {% if request.GET.inspection_status == "fail" %}selected{% endif %}>FAIL</option>
-      <option value="none" {% if request.GET.inspection_status == "none" %}selected{% endif %}>SIN INSPECCION</option>
+      <option value="none" {% if request.GET.inspection_status == "none" %}selected{% endif %}>NO INSPECTION</option>
     </select>
-    <button type="submit">Buscar</button>
+    <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/welds/new/">Nueva soldadura</a></p>
+  <p><a href="/ui/welds/new/">New weld</a></p>
   <ul>
     {% for item in items %}
       <li>
@@ -37,7 +37,7 @@
         {% endif %}
       </li>
     {% empty %}
-      <li>Sin registros.</li>
+      <li>No records.</li>
     {% endfor %}
   </ul>
 {% endblock %}

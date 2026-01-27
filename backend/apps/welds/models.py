@@ -5,6 +5,12 @@ from django.db import models
 class Drawing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey("projects.Project", on_delete=models.CASCADE)
+    equipment = models.ForeignKey(
+        "projects.ProjectEquipment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     code = models.CharField(max_length=100)
     revision = models.CharField(max_length=20)
     file_path = models.CharField(max_length=512)

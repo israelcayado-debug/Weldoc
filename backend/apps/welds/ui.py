@@ -174,7 +174,7 @@ def weld_create(request):
             return redirect("weld_detail", pk=item.pk)
     else:
         form = WeldForm()
-    return render(request, "welds/form.html", {"form": form, "title": "Nueva soldadura"})
+    return render(request, "welds/form.html", {"form": form, "title": "New weld"})
 
 
 @login_required
@@ -187,18 +187,21 @@ def weld_edit(request, pk):
             return redirect("weld_detail", pk=item.pk)
     else:
         form = WeldForm(instance=item)
-    return render(request, "welds/form.html", {"form": form, "title": "Editar soldadura"})
+    return render(request, "welds/form.html", {"form": form, "title": "Edit weld"})
 
 
 @login_required
 def drawing_list(request):
     q = request.GET.get("q")
     project_id = request.GET.get("project_id")
-    items = models.Drawing.objects.select_related("project").all().order_by("code")
+    equipment_id = request.GET.get("equipment_id")
+    items = models.Drawing.objects.select_related("project", "equipment").all().order_by("code")
     if q:
         items = items.filter(Q(code__icontains=q) | Q(revision__icontains=q))
     if project_id:
         items = items.filter(project_id=project_id)
+    if equipment_id:
+        items = items.filter(equipment_id=equipment_id)
     return render(request, "drawings/list.html", {"items": items})
 
 
@@ -238,7 +241,7 @@ def drawing_create(request):
             return redirect("drawing_detail", pk=item.pk)
     else:
         form = DrawingForm()
-    return render(request, "drawings/form.html", {"form": form, "title": "Nuevo plano"})
+    return render(request, "drawings/form.html", {"form": form, "title": "New drawing"})
 
 
 @login_required
@@ -264,7 +267,7 @@ def drawing_edit(request, pk):
             return redirect("drawing_detail", pk=item.pk)
     else:
         form = DrawingForm(instance=item)
-    return render(request, "drawings/form.html", {"form": form, "title": "Editar plano"})
+    return render(request, "drawings/form.html", {"form": form, "title": "Edit drawing"})
 
 
 @login_required
@@ -277,12 +280,15 @@ def drawing_new_revision(request, pk):
     suggested = _suggest_next_revision(latest.revision if latest else None)
     project = source.project
     code = source.code
+    equipment = source.equipment
     if request.method == "POST":
         form = DrawingForm(request.POST, request.FILES)
         if form.is_valid():
             item = form.save(commit=False)
             item.project = project
             item.code = code
+            if equipment:
+                item.equipment = equipment
             upload = form.cleaned_data.get("upload")
             if upload:
                 filename = f"{uuid.uuid4().hex}_{upload.name}"
@@ -298,20 +304,23 @@ def drawing_new_revision(request, pk):
             item.save()
             return redirect("drawing_detail", pk=item.pk)
     else:
-        form = DrawingForm(
-            initial={
-                "project": project,
-                "code": code,
-                "revision": suggested,
-                "status": "active",
-            }
-        )
+        initial = {
+            "project": project,
+            "code": code,
+            "revision": suggested,
+            "status": "active",
+        }
+        if equipment:
+            initial["equipment"] = equipment
+        form = DrawingForm(initial=initial)
     form.fields["project"].widget = forms.HiddenInput()
+    if equipment:
+        form.fields["equipment"].widget = forms.HiddenInput()
     form.fields["code"].widget = forms.HiddenInput()
     return render(
         request,
         "drawings/form.html",
-        {"form": form, "title": "Nueva revision", "source": source},
+        {"form": form, "title": "New revision", "source": source},
     )
 
 
@@ -393,13 +402,18 @@ def weld_map_list(request):
     q = request.GET.get("q")
     project_id = request.GET.get("project_id")
     drawing_id = request.GET.get("drawing_id")
-    items = models.WeldMap.objects.select_related("project", "drawing").all().order_by("drawing__code")
+    equipment_id = request.GET.get("equipment_id")
+    items = models.WeldMap.objects.select_related(
+        "project", "drawing", "drawing__equipment"
+    ).all().order_by("drawing__code")
     if q:
         items = items.filter(drawing__code__icontains=q)
     if project_id:
         items = items.filter(project_id=project_id)
     if drawing_id:
         items = items.filter(drawing_id=drawing_id)
+    if equipment_id:
+        items = items.filter(drawing__equipment_id=equipment_id)
     return render(request, "weld_maps/list.html", {"items": items})
 
 
@@ -473,7 +487,7 @@ def weld_map_create(request):
             return redirect("weld_map_detail", pk=item.pk)
     else:
         form = WeldMapForm()
-    return render(request, "weld_maps/form.html", {"form": form, "title": "Nuevo welding map"})
+    return render(request, "weld_maps/form.html", {"form": form, "title": "New welding map"})
 
 
 @login_required
@@ -486,7 +500,7 @@ def weld_map_edit(request, pk):
             return redirect("weld_map_detail", pk=item.pk)
     else:
         form = WeldMapForm(instance=item)
-    return render(request, "weld_maps/form.html", {"form": form, "title": "Editar welding map"})
+    return render(request, "weld_maps/form.html", {"form": form, "title": "Edit welding map"})
 
 
 @login_required
@@ -517,7 +531,7 @@ def weld_attribute_create(request):
             return redirect("weld_attribute_detail", pk=item.pk)
     else:
         form = WeldAttributeForm(initial={"weld": weld_id} if weld_id else None)
-    return render(request, "weld_attributes/form.html", {"form": form, "title": "Nuevo atributo"})
+    return render(request, "weld_attributes/form.html", {"form": form, "title": "New attribute"})
 
 
 @login_required
@@ -530,7 +544,7 @@ def weld_attribute_edit(request, pk):
             return redirect("weld_attribute_detail", pk=item.pk)
     else:
         form = WeldAttributeForm(instance=item)
-    return render(request, "weld_attributes/form.html", {"form": form, "title": "Editar atributo"})
+    return render(request, "weld_attributes/form.html", {"form": form, "title": "Edit attribute"})
 
 
 @login_required
@@ -561,7 +575,7 @@ def weld_material_create(request):
             return redirect("weld_material_detail", pk=item.pk)
     else:
         form = WeldMaterialForm(initial={"weld": weld_id} if weld_id else None)
-    return render(request, "weld_materials/form.html", {"form": form, "title": "Nuevo material"})
+    return render(request, "weld_materials/form.html", {"form": form, "title": "New material"})
 
 
 @login_required
@@ -574,7 +588,7 @@ def weld_material_edit(request, pk):
             return redirect("weld_material_detail", pk=item.pk)
     else:
         form = WeldMaterialForm(instance=item)
-    return render(request, "weld_materials/form.html", {"form": form, "title": "Editar material"})
+    return render(request, "weld_materials/form.html", {"form": form, "title": "Edit material"})
 
 
 @login_required
@@ -605,7 +619,7 @@ def weld_consumable_create(request):
             return redirect("weld_consumable_detail", pk=item.pk)
     else:
         form = WeldConsumableForm(initial={"weld": weld_id} if weld_id else None)
-    return render(request, "weld_consumables/form.html", {"form": form, "title": "Nuevo consumible"})
+    return render(request, "weld_consumables/form.html", {"form": form, "title": "New consumable"})
 
 
 @login_required
@@ -618,7 +632,7 @@ def weld_consumable_edit(request, pk):
             return redirect("weld_consumable_detail", pk=item.pk)
     else:
         form = WeldConsumableForm(instance=item)
-    return render(request, "weld_consumables/form.html", {"form": form, "title": "Editar consumible"})
+    return render(request, "weld_consumables/form.html", {"form": form, "title": "Edit consumable"})
 
 
 @login_required
@@ -652,7 +666,7 @@ def visual_inspection_create(request):
             return redirect("visual_inspection_detail", pk=item.pk)
     else:
         form = VisualInspectionForm(initial={"weld": weld_id} if weld_id else None)
-    return render(request, "visual_inspections/form.html", {"form": form, "title": "Nueva inspeccion"})
+    return render(request, "visual_inspections/form.html", {"form": form, "title": "New inspection"})
 
 
 @login_required
@@ -665,4 +679,4 @@ def visual_inspection_edit(request, pk):
             return redirect("visual_inspection_detail", pk=item.pk)
     else:
         form = VisualInspectionForm(instance=item)
-    return render(request, "visual_inspections/form.html", {"form": form, "title": "Editar inspeccion"})
+    return render(request, "visual_inspections/form.html", {"form": form, "title": "Edit inspection"})

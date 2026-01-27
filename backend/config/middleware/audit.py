@@ -43,11 +43,16 @@ class AuditEventMiddleware(MiddlewareMixin):
                 body = request.data
             except Exception:
                 body = None
-        if body is None and request.body:
+        if body is None:
             try:
-                body = json.loads(request.body.decode("utf-8"))
+                raw_body = request.body
             except Exception:
-                body = None
+                raw_body = None
+            if raw_body:
+                try:
+                    body = json.loads(raw_body.decode("utf-8"))
+                except Exception:
+                    body = None
         if body is not None:
             payload["body"] = body
 

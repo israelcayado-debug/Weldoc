@@ -37,7 +37,7 @@ def nde_request_create(request):
             return redirect("nde_request_detail", pk=item.pk)
     else:
         form = NdeRequestForm()
-    return render(request, "quality/nde_requests/form.html", {"form": form, "title": "Nuevo END"})
+    return render(request, "quality/nde_requests/form.html", {"form": form, "title": "New NDE"})
 
 
 @login_required
@@ -50,7 +50,7 @@ def nde_request_edit(request, pk):
             return redirect("nde_request_detail", pk=item.pk)
     else:
         form = NdeRequestForm(instance=item)
-    return render(request, "quality/nde_requests/form.html", {"form": form, "title": "Editar END"})
+    return render(request, "quality/nde_requests/form.html", {"form": form, "title": "Edit NDE"})
 
 
 @login_required
@@ -80,7 +80,7 @@ def nde_result_create(request, pk):
     return render(
         request,
         "quality/nde_requests/result_form.html",
-        {"form": form, "title": "Nuevo resultado", "nde_request": nde_request},
+        {"form": form, "title": "New result", "nde_request": nde_request},
     )
 
 
@@ -121,7 +121,7 @@ def pwht_create(request):
             return redirect("pwht_detail", pk=item.pk)
     else:
         form = PwhtRecordForm()
-    return render(request, "quality/pwht/form.html", {"form": form, "title": "Nuevo PWHT"})
+    return render(request, "quality/pwht/form.html", {"form": form, "title": "New PWHT"})
 
 
 @login_required
@@ -145,7 +145,7 @@ def pwht_edit(request, pk):
             return redirect("pwht_detail", pk=item.pk)
     else:
         form = PwhtRecordForm(instance=item)
-    return render(request, "quality/pwht/form.html", {"form": form, "title": "Editar PWHT"})
+    return render(request, "quality/pwht/form.html", {"form": form, "title": "Edit PWHT"})
 
 
 @login_required
@@ -185,7 +185,7 @@ def pressure_test_create(request):
             return redirect("pressure_test_detail", pk=item.pk)
     else:
         form = PressureTestForm()
-    return render(request, "quality/pressure_tests/form.html", {"form": form, "title": "Nueva prueba de presion"})
+    return render(request, "quality/pressure_tests/form.html", {"form": form, "title": "New pressure test"})
 
 
 @login_required
@@ -209,4 +209,4 @@ def pressure_test_edit(request, pk):
             return redirect("pressure_test_detail", pk=item.pk)
     else:
         form = PressureTestForm(instance=item)
-    return render(request, "quality/pressure_tests/form.html", {"form": form, "title": "Editar prueba de presion"})
+    return render(request, "quality/pressure_tests/form.html", {"form": form, "title": "Edit pressure test"})

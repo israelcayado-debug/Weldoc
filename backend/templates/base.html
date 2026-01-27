@@ -4,8 +4,36 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>WeldDoc</title>
+    <style>
+      :root { --sidebar-w: 240px; --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #6b7280; --accent: #2563eb; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: "Segoe UI", Tahoma, Arial, sans-serif; color: var(--text); background: var(--bg); }
+      .layout { display: flex; min-height: 100vh; }
+      .sidebar { width: var(--sidebar-w); background: #111827; color: #e5e7eb; padding: 20px 16px; position: fixed; top: 0; left: 0; bottom: 0; }
+      .brand { font-weight: 700; margin-bottom: 20px; }
+      .nav a { display: block; color: #e5e7eb; text-decoration: none; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; }
+      .nav a:hover { background: #1f2937; }
+      .content { margin-left: var(--sidebar-w); padding: 24px; width: 100%; }
+      .card { background: var(--card); padding: 16px; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+      .muted { color: var(--muted); }
+    </style>
   </head>
   <body>
-    {% block content %}{% endblock %}
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">WeldDoc</div>
+        <nav class="nav">
+          {% for item in nav_sections %}
+            <a href="{{ item.url }}">{{ item.label }}</a>
+          {% endfor %}
+          {% if show_admin_nav %}
+            <a href="/admin/">Admin</a>
+          {% endif %}
+        </nav>
+      </aside>
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
   </body>
 </html>

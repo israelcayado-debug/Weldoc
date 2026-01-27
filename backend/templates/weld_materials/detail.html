@@ -2,10 +2,10 @@
 
 {% block content %}
   <h1>Material {{ item.heat_number }}</h1>
-  <p>Soldadura: {{ item.weld }}</p>
+  <p>Weld: {{ item.weld }}</p>
   <p>Material: {{ item.material }}</p>
   <p>
-    <a href="/ui/welds/weld-materials/{{ item.id }}/edit/">Editar</a> |
-    <a href="/ui/welds/weld-materials/">Volver</a>
+    <a href="/ui/welds/weld-materials/{{ item.id }}/edit/">Edit</a> |
+    <a href="/ui/welds/weld-materials/">Back</a>
   </p>
 {% endblock %}

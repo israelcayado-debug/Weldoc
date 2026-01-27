@@ -26,6 +26,7 @@ class Project(models.Model):
     client = models.ForeignKey("projects.Client", on_delete=models.SET_NULL, null=True)
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=100, unique=True)
+    purchase_order = models.CharField(max_length=100, blank=True, null=True)
     units = models.CharField(max_length=20, default="metric")
     status = models.CharField(max_length=30, default="active")
     standard_set = models.JSONField(default=list)
@@ -33,6 +34,22 @@ class Project(models.Model):
     class Meta:
         db_table = "Project"
 
+
+class ProjectEquipment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey("projects.Project", on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    fabrication_code = models.CharField(max_length=100)
+    status = models.CharField(max_length=30, default="active")
+
+    class Meta:
+        db_table = "ProjectEquipment"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "fabrication_code"],
+                name="project_equipment_fabrication_unique",
+            )
+        ]
 
 class ProjectUser(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

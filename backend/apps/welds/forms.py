@@ -2,6 +2,7 @@ from django import forms
 import json
 
 from . import models
+from apps.projects import models as project_models
 
 
 class WeldForm(forms.ModelForm):
@@ -12,7 +13,7 @@ class WeldForm(forms.ModelForm):
     def clean_status(self):
         status = self.cleaned_data["status"]
         if status not in ("planned", "in_progress", "completed", "repair"):
-            raise forms.ValidationError("Estado no valido.")
+            raise forms.ValidationError("Invalid status.")
         return status
 
 
@@ -21,16 +22,40 @@ class DrawingForm(forms.ModelForm):
 
     class Meta:
         model = models.Drawing
-        fields = ["project", "code", "revision", "file_path", "status"]
+        fields = ["project", "equipment", "code", "revision", "file_path", "status"]
         widgets = {
             "file_path": forms.HiddenInput(),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["file_path"].required = False
+        self.fields["equipment"].required = True
+        project_id = None
+        if self.instance and self.instance.project_id:
+            project_id = self.instance.project_id
+        if "project" in self.data:
+            project_id = self.data.get("project")
+        elif self.initial.get("project"):
+            project_id = self.initial.get("project")
+        if project_id:
+            self.fields["equipment"].queryset = project_models.ProjectEquipment.objects.filter(
+                project_id=project_id
+            ).order_by("name")
+
     def clean_status(self):
         status = self.cleaned_data["status"]
         if status not in ("active", "archived"):
-            raise forms.ValidationError("Estado no valido.")
+            raise forms.ValidationError("Invalid status.")
         return status
+
+    def clean(self):
+        cleaned = super().clean()
+        project = cleaned.get("project")
+        equipment = cleaned.get("equipment")
+        if project and equipment and equipment.project_id != project.id:
+            self.add_error("equipment", "Equipment does not belong to the project.")
+        return cleaned
 
 
 class WeldMapForm(forms.ModelForm):
@@ -41,7 +66,7 @@ class WeldMapForm(forms.ModelForm):
     def clean_status(self):
         status = self.cleaned_data["status"]
         if status not in ("active", "archived"):
-            raise forms.ValidationError("Estado no valido.")
+            raise forms.ValidationError("Invalid status.")
         return status
 
 
@@ -58,7 +83,7 @@ class WeldMarkForm(forms.Form):
         try:
             return json.loads(raw)
         except json.JSONDecodeError:
-            raise forms.ValidationError("JSON invalido.")
+            raise forms.ValidationError("Invalid JSON.")
 
     def clean_marks_json(self):
         raw = self.cleaned_data.get("marks_json")
@@ -67,9 +92,9 @@ class WeldMarkForm(forms.Form):
         try:
             data = json.loads(raw)
         except json.JSONDecodeError:
-            raise forms.ValidationError("JSON invalido.")
+            raise forms.ValidationError("Invalid JSON.")
         if not isinstance(data, list):
-            raise forms.ValidationError("Debe ser una lista de marcas.")
+            raise forms.ValidationError("Must be a list of marks.")
         return data
 
 
@@ -99,11 +124,11 @@ class VisualInspectionForm(forms.ModelForm):
     def clean_stage(self):
         stage = self.cleaned_data["stage"]
         if stage not in ("fit_up", "during_weld", "post_weld"):
-            raise forms.ValidationError("Etapa no valida.")
+            raise forms.ValidationError("Invalid stage.")
         return stage
 
     def clean_result(self):
         result = self.cleaned_data["result"]
         if result not in ("pass", "fail", "rework"):
-            raise forms.ValidationError("Resultado no valido.")
+            raise forms.ValidationError("Invalid result.")
         return result

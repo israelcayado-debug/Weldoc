@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Consumibles por soldadura</h1>
+  <h1>Weld Consumables</h1>
   <form method="get">
     <input type="text" name="weld_id" placeholder="Weld ID" value="{{ request.GET.weld_id }}">
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
-    <button type="submit">Buscar</button>
+    <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/welds/weld-consumables/new/">Nuevo consumible</a></p>
+  <p><a href="/ui/welds/weld-consumables/new/">New consumable</a></p>
   <ul>
     {% for item in items %}
       <li><a href="/ui/welds/weld-consumables/{{ item.id }}/">{{ item.batch|default:"-" }}</a> ({{ item.weld.number }})</li>
     {% empty %}
-      <li>Sin registros.</li>
+      <li>No records.</li>
     {% endfor %}
   </ul>
 {% endblock %}

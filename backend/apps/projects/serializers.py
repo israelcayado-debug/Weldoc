@@ -18,10 +18,28 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = models.Project
         fields = '__all__'
 
+    def validate_code(self, value):
+        value = (value or "").strip()
+        if not (value.isdigit() and len(value) == 8):
+            raise serializers.ValidationError("Project number must be 8 digits.")
+        return value
+
+    def validate_purchase_order(self, value):
+        value = (value or "").strip()
+        if not value:
+            raise serializers.ValidationError("Purchase Order requerido.")
+        return value
+
 
 class ProjectUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ProjectUser
+        fields = '__all__'
+
+
+class ProjectEquipmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProjectEquipment
         fields = '__all__'
 
 

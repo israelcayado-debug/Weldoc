@@ -1,24 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>END {{ item.method }}</h1>
-  <p>Proyecto: {{ item.project }}</p>
-  <p>Soldadura: {{ item.weld }}</p>
-  <p>Estado: {{ item.status }}</p>
-  <p><a href="/ui/quality/nde-requests/{{ item.id }}/results/new/">Agregar resultado</a></p>
+  <h1>NDE {{ item.method }}</h1>
+  <p>Project: {{ item.project }}</p>
+  <p>Weld: {{ item.weld }}</p>
+  <p>Status: {{ item.status }}</p>
+  <p><a href="/ui/quality/nde-requests/{{ item.id }}/results/new/">Add result</a></p>
 
-  <h2>Resultados</h2>
+  <h2>Results</h2>
   <ul>
     {% for res in results %}
       <li>
         {{ res.result }} - {{ res.defect_type|default:"-" }}
         {% if res.report_path %}
-          - <a href="/media/{{ res.report_path }}">Reporte</a>
+          - <a href="/media/{{ res.report_path }}">Report</a>
         {% endif %}
       </li>
     {% empty %}
-      <li>Sin resultados.</li>
+      <li>No results.</li>
     {% endfor %}
   </ul>
-  <p><a href="/ui/quality/nde-requests/">Volver</a></p>
+  <p><a href="/ui/quality/nde-requests/">Back</a></p>
 {% endblock %}
