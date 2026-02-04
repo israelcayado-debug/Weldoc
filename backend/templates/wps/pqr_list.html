@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <style>
+    .pqr-head { margin-bottom: 12px; }
+    .pqr-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .pqr-filters input { padding: 8px; border: 1px solid #cfd4dc; border-radius: 6px; min-width: 170px; }
+    .pqr-filters button { padding: 8px 12px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    .pqr-links { margin-bottom: 12px; }
+    .table-wrap { overflow-x: auto; border: 1px solid #d7dde7; border-radius: 8px; background: #fff; }
+    .pqr-table { width: 100%; border-collapse: collapse; min-width: 2200px; font-size: 13px; }
+    .pqr-table th, .pqr-table td { padding: 8px; border-bottom: 1px solid #edf0f4; white-space: nowrap; }
+    .pqr-table th { background: #f2f4f7; text-transform: uppercase; font-size: 12px; letter-spacing: .02em; }
+    .pqr-table td.actions, .pqr-table th.actions { text-align: right; }
+    .status { font-size: 12px; color: #6b7280; }
+  </style>
+
+  <h1 class="pqr-head">Listado PQR (ASME IX)</h1>
+  <form method="get" class="pqr-filters">
+    <input type="text" name="q" placeholder="Buscar código PQR" value="{{ request.GET.q }}">
+    <button type="submit">Buscar</button>
+  </form>
+  <p class="pqr-links">
+    <a href="/ui/pqr/new/tool/">Crear PQR</a> |
+    <a href="/ui/wps/">Volver a WPS</a>
+  </p>
+
+  <div class="table-wrap">
+    <table class="pqr-table">
+      <thead>
+        <tr>
+          <th>PQR N.°</th>
+          <th>Proceso</th>
+          <th>T (mm)</th>
+          <th>N.° P</th>
+          <th>N.° F GTAW</th>
+          <th>N.° A GTAW</th>
+          <th>N.° F SMAW</th>
+          <th>N.° A SMAW</th>
+          <th>t max GTAW</th>
+          <th>t max SMAW</th>
+          <th>GTAW Filler and Form</th>
+          <th>Preheat</th>
+          <th>PWHT</th>
+          <th>Gas protección</th>
+          <th>AWS SFA GTAW</th>
+          <th>AWS SFA SMAW</th>
+          <th>Tª entre pasadas</th>
+          <th>A. térmic. GTAW KJ/cm</th>
+          <th>A. térmic. SMAW KJ/cm</th>
+          <th>N° A M. Base</th>
+          <th>Posición</th>
+          <th>Gas respaldo</th>
+          <th class="actions">PDF escaneado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td>
+              <a href="/ui/pqr/{{ item.id }}/">{{ item.code }}</a><br>
+              <span class="status">{{ item.status }}</span>
+            </td>
+            <td>{{ item.display_process }}</td>
+            <td>{{ item.display_thickness }}</td>
+            <td>{{ item.display_p_no }}</td>
+            <td>{{ item.display_f_gtaw }}</td>
+            <td>{{ item.display_a_gtaw }}</td>
+            <td>{{ item.display_f_smaw }}</td>
+            <td>{{ item.display_a_smaw }}</td>
+            <td>{{ item.display_t_max_gtaw }}</td>
+            <td>{{ item.display_t_max_smaw }}</td>
+            <td>{{ item.display_gtaw_filler_form }}</td>
+            <td>{{ item.display_preheat }}</td>
+            <td>{{ item.display_pwht }}</td>
+            <td>{{ item.display_gas_protection }}</td>
+            <td>{{ item.display_aws_sfa_gtaw }}</td>
+            <td>{{ item.display_aws_sfa_smaw }}</td>
+            <td>{{ item.display_interpass_temp }}</td>
+            <td>{{ item.display_heat_input_gtaw }}</td>
+            <td>{{ item.display_heat_input_smaw }}</td>
+            <td>{{ item.display_base_metal_a_no }}</td>
+            <td>{{ item.display_position }}</td>
+            <td>{{ item.display_gas_backing }}</td>
+            <td class="actions">
+              {% if item.scanned_pdf %}
+                <a href="{{ item.scanned_pdf.url }}" target="_blank" rel="noopener">Descargar PDF</a>
+              {% else %}
+                <span class="muted">Sin escaneado</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="23" class="muted">No hay registros.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

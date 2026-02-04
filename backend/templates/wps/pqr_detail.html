@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <style>
+    .scan-card { border: 1px solid #d7dde7; border-radius: 8px; padding: 12px; background: #fff; max-width: 560px; margin: 12px 0; }
+    .scan-card form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .scan-card button { padding: 8px 12px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+  </style>
+
+  <h1>{{ item.code }}</h1>
+  <p>Standard: {{ item.standard }}</p>
+  <p>Status: {{ item.status }}</p>
+  <p>Scope: Global (sin proyecto)</p>
+
+  <div class="scan-card">
+    <h2>PDF escaneado oficial</h2>
+    {% if item.scanned_pdf %}
+      <p><a href="{{ item.scanned_pdf.url }}" target="_blank" rel="noopener">Descargar PDF escaneado actual</a></p>
+    {% else %}
+      <p class="muted">Aún no hay PDF escaneado cargado.</p>
+    {% endif %}
+    <form method="post" action="/ui/pqr/{{ item.id }}/upload-scan/" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ upload_form.scan_pdf }}
+      <button type="submit">Subir escaneado</button>
+    </form>
+    {% if upload_form.scan_pdf.errors %}
+      <p class="muted">{{ upload_form.scan_pdf.errors|join:", " }}</p>
+    {% endif %}
+    <p class="muted">Usar siempre este escaneado sellado (NOBO / tercera parte).</p>
+  </div>
+
+  <p>
+    {% if item.status == "draft" %}
+      <form method="post" action="/ui/pqr/{{ item.id }}/submit-review/" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">Submit for review</button>
+      </form>
+    {% endif %}
+    {% if item.status == "draft" or item.status == "in_review" %}
+      <form method="post" action="/ui/pqr/{{ item.id }}/approve/" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">Approve</button>
+      </form>
+    {% endif %}
+    <a href="/ui/pqr/">Back</a> |
+    <a href="/ui/wps/">WPS</a>
+  </p>
+
+  <h2>Results</h2>
+  <ul>
+    {% for row in results %}
+      <li>{{ row.test_type }}: {{ row.result }}</li>
+    {% empty %}
+      <li>No results.</li>
+    {% endfor %}
+  </ul>
+  {% if not results %}
+    <p class="muted">Approve requires at least one result.</p>
+  {% endif %}
+{% endblock %}

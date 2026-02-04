@@ -1,25 +1,43 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Documents</h1>
+  <h1>Welding Book</h1>
   <form method="get">
-    <input type="text" name="q" placeholder="Search title" value="{{ request.GET.q }}">
+    <input type="text" name="q" placeholder="Search title / project" value="{{ request.GET.q }}">
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
-    <input type="text" name="equipment_id" placeholder="Equipment ID" value="{{ request.GET.equipment_id }}">
     <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/documents/new/">New document</a></p>
-  <ul>
-    {% for item in items %}
-      <li>
-        <a href="/ui/documents/{{ item.id }}/">{{ item.title }}</a>
-        ({{ item.status }})
-        {% if item.equipment %}
-          - {{ item.equipment.name }}
-        {% endif %}
-      </li>
-    {% empty %}
-      <li>No records.</li>
-    {% endfor %}
-  </ul>
+  <p><a href="/ui/documents/new/">New Welding Book</a></p>
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Welding Book</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Proyecto</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Estado</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">Welding Map</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">Welding List</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">WPS</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">PQR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;"><a href="/ui/documents/{{ item.id }}/">{{ item.title }}</a></td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.project.code }} - {{ item.project.name }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.status }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.welding_map_count }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.welding_list_count }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.wps_count }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.pqr_count }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" style="padding: 12px;" class="muted">No records.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

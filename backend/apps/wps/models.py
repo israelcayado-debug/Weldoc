@@ -52,6 +52,7 @@ class Pqr(models.Model):
     code = models.CharField(max_length=100)
     standard = models.CharField(max_length=30)
     status = models.CharField(max_length=30, default="draft")
+    scanned_pdf = models.FileField(upload_to="pqr_scans/", blank=True, null=True)
 
     class Meta:
         db_table = "Pqr"

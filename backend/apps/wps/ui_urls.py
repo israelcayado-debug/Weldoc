@@ -5,6 +5,8 @@ from . import ui
 
 urlpatterns = [
     path("", ui.wps_list, name="wps_list"),
+    path("<uuid:pk>/copy/", ui.wps_copy, name="wps_copy"),
+    path("new/tool/", ui.wps_create_tool, name="wps_create_tool"),
     path("new/", ui.wps_create, name="wps_create"),
     path("<uuid:pk>/", ui.wps_detail, name="wps_detail"),
     path("<uuid:pk>/edit/", ui.wps_edit, name="wps_edit"),

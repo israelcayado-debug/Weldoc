@@ -9,28 +9,45 @@
       <option value="active" {% if request.GET.status == "active" %}selected{% endif %}>Active</option>
       <option value="archived" {% if request.GET.status == "archived" %}selected{% endif %}>Archived</option>
     </select>
-    <select name="client_id">
-      <option value="">Customer</option>
-      {% for client in clients %}
-        <option value="{{ client.id }}" {% if request.GET.client_id == client.id|stringformat:"s" %}selected{% endif %}>
-          {{ client.name }}
-        </option>
-      {% endfor %}
-    </select>
     <button type="submit">Search</button>
   </form>
   <p>
-    <a href="/ui/projects/new/">New project</a> |
-    <a href="/ui/projects/clients/">Customers</a>
+    <a href="/ui/projects/new/">New project</a>
   </p>
-  <ul>
-    {% for item in items %}
-      <li>
-        <a href="/ui/projects/{{ item.id }}/">{{ item.name }}</a>
-        ({{ item.code }}) - {{ item.status }}
-      </li>
-    {% empty %}
-      <li>No records.</li>
-    {% endfor %}
-  </ul>
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Nro. proyecto</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Nombre</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">PO cliente</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Cliente</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Estado</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">Welding Book</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">WPS</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">PQR</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">Soldadores</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;"><a href="/ui/projects/{{ item.id }}/">{{ item.code }}</a></td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.name }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.purchase_order|default:"-" }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.client.name|default:"-" }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.status }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.welding_book_count }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.wps_count }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.pqr_count }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.welder_count }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9" style="padding: 12px;" class="muted">No records.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

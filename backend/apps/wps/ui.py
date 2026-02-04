@@ -1,21 +1,233 @@
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from . import models
-from .forms import WpsForm, WpsProcessForm, WpsVariableBulkForm
+from .forms import (
+    PqrQuickCreateForm,
+    PqrScanUploadForm,
+    WpsForm,
+    WpsProcessForm,
+    WpsQuickCreateForm,
+    WpsVariableBulkForm,
+)
+
+
+def _next_copy_code(wps):
+    base = f"{wps.code}-COPY"
+    candidate = base
+    index = 2
+    while models.Wps.objects.filter(project=wps.project, code=candidate).exists():
+        candidate = f"{base}-{index}"
+        index += 1
+    return candidate
+
+
+def _result_value(result_map, *keys):
+    for key in keys:
+        value = result_map.get(key)
+        if value:
+            return value
+    return "-"
 
 
 @login_required
 def wps_list(request):
     q = request.GET.get("q")
     project_id = request.GET.get("project_id")
-    items = models.Wps.objects.all().order_by("code")
+    items = (
+        models.Wps.objects.select_related("project")
+        .prefetch_related(
+            "wpspqrlink_set__pqr",
+            "wpsvariable_set",
+            "wpsprocess_set__wpsvariablevalue_set__definition",
+        )
+        .order_by("code")
+    )
     if q:
         items = items.filter(code__icontains=q)
     if project_id:
         items = items.filter(project_id=project_id)
+    for item in items:
+        p_numbers = set()
+        for variable in item.wpsvariable_set.all():
+            key = (variable.name or "").lower()
+            if key in {
+                "material_pno",
+                "p_number",
+                "p_no",
+                "p_numbers",
+                "p_number_qualified",
+                "p_no_qualified",
+            }:
+                value = (variable.value or "").strip()
+                if value:
+                    p_numbers.add(value)
+        for process in item.wpsprocess_set.all():
+            for variable_value in process.wpsvariablevalue_set.all():
+                definition = variable_value.definition
+                name = (definition.name or "").lower()
+                label = (definition.label or "").lower()
+                if "p_no" in name or "p_number" in name or "p-no" in label or "p-number" in label:
+                    value = (variable_value.value or "").strip()
+                    if value:
+                        p_numbers.add(value)
+        item.display_p_numbers = ", ".join(sorted(p_numbers)) if p_numbers else "-"
+        pqr_codes = sorted(
+            {link.pqr.code for link in item.wpspqrlink_set.all() if link.pqr_id}
+        )
+        item.display_pqrs = ", ".join(pqr_codes) if pqr_codes else "-"
     return render(request, "wps/list.html", {"items": items})
+
+
+@login_required
+@require_POST
+def wps_copy(request, pk):
+    source = get_object_or_404(models.Wps, pk=pk)
+    process_map = {}
+    with transaction.atomic():
+        copied = models.Wps.objects.create(
+            project=source.project,
+            code=_next_copy_code(source),
+            standard=source.standard,
+            impact_test=source.impact_test,
+            status="draft",
+        )
+        for process in models.WpsProcess.objects.filter(wps=source).order_by("order"):
+            process_map[process.id] = models.WpsProcess.objects.create(
+                wps=copied,
+                process_code=process.process_code,
+                special_process=process.special_process,
+                order=process.order,
+            )
+        for value in models.WpsVariableValue.objects.filter(wps_process__wps=source):
+            target_process = process_map.get(value.wps_process_id)
+            if not target_process:
+                continue
+            models.WpsVariableValue.objects.create(
+                wps_process=target_process,
+                definition=value.definition,
+                value=value.value,
+                unit=value.unit,
+            )
+        for variable in models.WpsVariable.objects.filter(wps=source):
+            models.WpsVariable.objects.create(
+                wps=copied,
+                name=variable.name,
+                value=variable.value,
+                unit=variable.unit,
+            )
+    return redirect("wps_qw482_form", pk=copied.pk)
+
+
+@login_required
+def pqr_list(request):
+    q = request.GET.get("q")
+    items = (
+        models.Pqr.objects.select_related("project")
+        .prefetch_related("pqrresult_set")
+        .order_by("code")
+    )
+    if q:
+        items = items.filter(code__icontains=q)
+    for item in items:
+        result_map = {row.test_type: row.result for row in item.pqrresult_set.all()}
+        item.display_process = _result_value(result_map, "processes", "process")
+        item.display_thickness = _result_value(result_map, "thickness_range", "thickness")
+        item.display_p_no = _result_value(result_map, "material_pno", "p_no")
+        item.display_f_gtaw = _result_value(result_map, "filler_fno_gtaw", "filler_fno")
+        item.display_a_gtaw = _result_value(result_map, "a_no_gtaw")
+        item.display_f_smaw = _result_value(result_map, "filler_fno_smaw")
+        item.display_a_smaw = _result_value(result_map, "a_no_smaw")
+        item.display_t_max_gtaw = _result_value(result_map, "t_max_gtaw")
+        item.display_t_max_smaw = _result_value(result_map, "t_max_smaw")
+        item.display_gtaw_filler_form = _result_value(
+            result_map,
+            "gtaw_filler_form",
+            "filler_form_gtaw",
+            "filler_and_form_gtaw",
+        )
+        item.display_preheat = _result_value(result_map, "preheat")
+        item.display_pwht = _result_value(result_map, "pwht")
+        item.display_gas_protection = _result_value(result_map, "gas_protection")
+        item.display_aws_sfa_gtaw = _result_value(result_map, "aws_sfa_gtaw")
+        item.display_aws_sfa_smaw = _result_value(result_map, "aws_sfa_smaw")
+        item.display_interpass_temp = _result_value(result_map, "interpass_temp")
+        item.display_heat_input_gtaw = _result_value(result_map, "heat_input_gtaw")
+        item.display_heat_input_smaw = _result_value(result_map, "heat_input_smaw")
+        item.display_base_metal_a_no = _result_value(result_map, "base_metal_a_no")
+        item.display_position = _result_value(result_map, "position")
+        item.display_gas_backing = _result_value(result_map, "gas_backing")
+    return render(request, "wps/pqr_list.html", {"items": items})
+
+
+@login_required
+def pqr_detail(request, pk):
+    item = get_object_or_404(models.Pqr, pk=pk)
+    results = models.PqrResult.objects.filter(pqr=item).order_by("test_type")
+    upload_form = PqrScanUploadForm()
+    return render(
+        request,
+        "wps/pqr_detail.html",
+        {"item": item, "results": results, "upload_form": upload_form},
+    )
+
+
+@login_required
+@require_POST
+def pqr_upload_scan(request, pk):
+    item = get_object_or_404(models.Pqr, pk=pk)
+    form = PqrScanUploadForm(request.POST, request.FILES)
+    if form.is_valid():
+        item.scanned_pdf = form.cleaned_data["scan_pdf"]
+        item.save(update_fields=["scanned_pdf"])
+        return redirect("pqr_detail", pk=item.pk)
+    results = models.PqrResult.objects.filter(pqr=item).order_by("test_type")
+    return render(
+        request,
+        "wps/pqr_detail.html",
+        {"item": item, "results": results, "upload_form": form},
+        status=400,
+    )
+
+
+@login_required
+def pqr_create_tool(request):
+    if request.method == "POST":
+        form = PqrQuickCreateForm(request.POST)
+        if form.is_valid():
+            item = form.save()
+            return redirect("pqr_detail", pk=item.pk)
+    else:
+        form = PqrQuickCreateForm()
+    return render(
+        request,
+        "wps/pqr_create_tool.html",
+        {"form": form, "title": "PQR Creation Tool"},
+    )
+
+
+@login_required
+@require_POST
+def pqr_submit_review(request, pk):
+    item = get_object_or_404(models.Pqr, pk=pk)
+    if item.status == "draft":
+        item.status = "in_review"
+        item.save(update_fields=["status"])
+    return redirect("pqr_detail", pk=item.pk)
+
+
+@login_required
+@require_POST
+def pqr_approve(request, pk):
+    item = get_object_or_404(models.Pqr, pk=pk)
+    has_results = models.PqrResult.objects.filter(pqr=item).exists()
+    if item.status in ("draft", "in_review") and has_results:
+        item.status = "approved"
+        item.save(update_fields=["status"])
+    return redirect("pqr_detail", pk=item.pk)
 
 
 @login_required
@@ -39,6 +251,22 @@ def wps_create(request):
     else:
         form = WpsForm()
     return render(request, "wps/form.html", {"form": form, "title": "New WPS"})
+
+
+@login_required
+def wps_create_tool(request):
+    if request.method == "POST":
+        form = WpsQuickCreateForm(request.POST)
+        if form.is_valid():
+            item = form.save()
+            return redirect("wps_qw482_form", pk=item.pk)
+    else:
+        form = WpsQuickCreateForm()
+    return render(
+        request,
+        "wps/create_tool.html",
+        {"form": form, "title": "WPS Creation Tool"},
+    )
 
 
 @login_required

@@ -3,14 +3,50 @@
 {% block content %}
   <div class="card">
     <h1>Dashboard</h1>
-    <p class="muted">System overview.</p>
-    <ul>
-      <li><a href="/ui/welds/">Welds and maps</a></li>
-      <li><a href="/ui/documents/">Documents</a></li>
-      <li><a href="/ui/reports/exports/">Reports and exports</a></li>
-    </ul>
+    <p class="muted">Project overview for WPS, PQR and welding activity.</p>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Proyecto</th>
+            <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Nro. proyecto</th>
+            <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">Welding Book</th>
+            <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">WPS</th>
+            <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">PQR</th>
+            <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">Soldadores asociados</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for project in projects %}
+            <tr>
+              <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">
+                <a href="/ui/projects/{{ project.id }}/">{{ project.name }}</a>
+              </td>
+              <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ project.code }}</td>
+              <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ project.welding_book_count }}</td>
+              <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ project.wps_count }}</td>
+              <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ project.pqr_count }}</td>
+              <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ project.welder_count }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" style="padding: 12px;" class="muted">No hay proyectos.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
   <div class="card" style="margin-top: 16px;">
+    <h2>Accesos rapidos</h2>
+    <ul>
+      <li><a href="/ui/projects/">Projects</a></li>
+      <li><a href="/ui/wps/">WPS</a></li>
+      <li><a href="/ui/pqr/">PQR</a></li>
+      <li><a href="/ui/wpq/">WPQ / Welders</a></li>
+      <li><a href="/ui/welds/">Welds and maps</a></li>
+      <li><a href="/ui/documents/">Welding Book</a></li>
+    </ul>
     <h2>Main workflow</h2>
     <ol>
       <li>Create project and base standards.</li>

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p class="muted">PQR global (no asociado a proyecto). Completa todos los campos del registro.</p>
+  <form method="post">
+    {% csrf_token %}
+
+    <fieldset>
+      <legend>PQR data</legend>
+      {{ form.code.label_tag }} {{ form.code }}<br />
+      {{ form.standard.label_tag }} {{ form.standard }}<br />
+      {{ form.status.label_tag }} {{ form.status }}
+    </fieldset>
+
+    <fieldset style="margin-top: 12px;">
+      <legend>Rangos calificados ASME IX</legend>
+      {{ form.processes.label_tag }} {{ form.processes }}<br />
+      {{ form.thickness_range.label_tag }} {{ form.thickness_range }}<br />
+      {{ form.p_group.label_tag }} {{ form.p_group }}<br />
+      {{ form.filler_fno_gtaw.label_tag }} {{ form.filler_fno_gtaw }}<br />
+      {{ form.a_no_gtaw.label_tag }} {{ form.a_no_gtaw }}<br />
+      {{ form.filler_fno_smaw.label_tag }} {{ form.filler_fno_smaw }}<br />
+      {{ form.a_no_smaw.label_tag }} {{ form.a_no_smaw }}<br />
+      {{ form.t_max_gtaw.label_tag }} {{ form.t_max_gtaw }}<br />
+      {{ form.t_max_smaw.label_tag }} {{ form.t_max_smaw }}<br />
+      {{ form.gtaw_filler_form.label_tag }} {{ form.gtaw_filler_form }}<br />
+      {{ form.preheat.label_tag }} {{ form.preheat }}<br />
+      {{ form.pwht.label_tag }} {{ form.pwht }}<br />
+      {{ form.gas_protection.label_tag }} {{ form.gas_protection }}<br />
+      {{ form.aws_sfa_gtaw.label_tag }} {{ form.aws_sfa_gtaw }}<br />
+      {{ form.aws_sfa_smaw.label_tag }} {{ form.aws_sfa_smaw }}<br />
+      {{ form.interpass_temp.label_tag }} {{ form.interpass_temp }}<br />
+      {{ form.heat_input_gtaw.label_tag }} {{ form.heat_input_gtaw }}<br />
+      {{ form.heat_input_smaw.label_tag }} {{ form.heat_input_smaw }}<br />
+      {{ form.base_metal_a_no.label_tag }} {{ form.base_metal_a_no }}<br />
+      {{ form.position.label_tag }} {{ form.position }}<br />
+      {{ form.gas_backing.label_tag }} {{ form.gas_backing }}
+    </fieldset>
+
+    <fieldset style="margin-top: 12px;">
+      <legend>Datos ensayo / certificado</legend>
+      {{ form.material_1.label_tag }} {{ form.material_1 }}<br />
+      {{ form.p_group_1.label_tag }} {{ form.p_group_1 }}<br />
+      {{ form.material_2.label_tag }} {{ form.material_2 }}<br />
+      {{ form.p_group_2.label_tag }} {{ form.p_group_2 }}<br />
+      {{ form.diameter.label_tag }} {{ form.diameter }}<br />
+      {{ form.thickness_test_coupon.label_tag }} {{ form.thickness_test_coupon }}<br />
+      {{ form.end_requirements.label_tag }} {{ form.end_requirements }}<br />
+      {{ form.itm_signature.label_tag }} {{ form.itm_signature }}<br />
+      {{ form.notes.label_tag }} {{ form.notes }}
+      {% if form.errors %}
+        <ul style="color: #b00020;">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+              <li>{{ field }}: {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </fieldset>
+
+    <button type="submit">Crear PQR</button>
+  </form>
+  <p><a href="/ui/pqr/">Back</a></p>
+{% endblock %}

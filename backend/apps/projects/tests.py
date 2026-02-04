@@ -1,0 +1,57 @@
+from django.test import TestCase
+from django.urls import reverse
+
+from apps.documents import models as document_models
+from apps.welds import models as weld_models
+from apps.wpq import models as wpq_models
+from apps.wps import models as wps_models
+from . import models
+
+
+class ProjectListUiTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        AuthUser = get_user_model()
+        self.user = AuthUser.objects.create_user(username="project-ui", password="12345")
+        self.client.login(username="project-ui", password="12345")
+
+    def test_project_list_includes_summary_columns(self):
+        project = models.Project.objects.create(
+            name="Project One",
+            code="00000001",
+            purchase_order="PO-1",
+            units="metric",
+            status="active",
+            standard_set=["ASME_IX"],
+        )
+
+        document_models.Document.objects.create(
+            project=project,
+            type="Welding Book",
+            title="WB-1",
+            status="active",
+        )
+        wps_models.Wps.objects.create(
+            project=project,
+            code="WPS-1",
+            standard="ASME_IX",
+            status="draft",
+        )
+        wps_models.Pqr.objects.create(
+            project=project,
+            code="PQR-1",
+            standard="ASME_IX",
+            status="draft",
+        )
+        weld = weld_models.Weld.objects.create(project=project, number="W-1")
+        welder = wpq_models.Welder.objects.create(name="Welder A")
+        weld_models.WeldWelderAssignment.objects.create(weld=weld, welder=welder)
+
+        response = self.client.get(reverse("project_list"))
+        self.assertEqual(response.status_code, 200)
+        item = response.context["items"].get(id=project.id)
+        self.assertEqual(item.welding_book_count, 1)
+        self.assertEqual(item.wps_count, 1)
+        self.assertEqual(item.pqr_count, 1)
+        self.assertEqual(item.welder_count, 1)

@@ -28,7 +28,7 @@ class WpsAdmin(admin.ModelAdmin):
 
 @admin.register(models.Pqr)
 class PqrAdmin(admin.ModelAdmin):
-    list_display = ("code", "standard", "status", "project")
+    list_display = ("code", "standard", "status", "scanned_pdf")
     search_fields = ("code",)
 
 

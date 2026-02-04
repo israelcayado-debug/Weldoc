@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  <p class="muted">Create WPS + processes in one step, then complete QW-482 variables.</p>
+  <form method="post">
+    {% csrf_token %}
+
+    <fieldset>
+      <legend>WPS data</legend>
+      {{ form.project.label_tag }} {{ form.project }}<br />
+      {{ form.code.label_tag }} {{ form.code }}<br />
+      {{ form.standard.label_tag }} {{ form.standard }}<br />
+      {{ form.impact_test.label_tag }} {{ form.impact_test }}<br />
+      {{ form.status.label_tag }} {{ form.status }}
+    </fieldset>
+
+    <fieldset style="margin-top: 12px;">
+      <legend>Processes (max 3)</legend>
+      <p>
+        {{ form.process_1.label_tag }} {{ form.process_1 }}
+        {{ form.special_process_1.label_tag }} {{ form.special_process_1 }}
+      </p>
+      <p>
+        {{ form.process_2.label_tag }} {{ form.process_2 }}
+        {{ form.special_process_2.label_tag }} {{ form.special_process_2 }}
+      </p>
+      <p>
+        {{ form.process_3.label_tag }} {{ form.process_3 }}
+        {{ form.special_process_3.label_tag }} {{ form.special_process_3 }}
+      </p>
+      {% if form.errors %}
+        <ul style="color: #b00020;">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+              <li>{{ field }}: {{ error }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </fieldset>
+
+    <button type="submit">Create WPS</button>
+  </form>
+  <p><a href="/ui/wps/">Back</a></p>
+{% endblock %}

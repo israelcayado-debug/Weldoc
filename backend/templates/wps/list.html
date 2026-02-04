@@ -7,12 +7,40 @@
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
     <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/wps/new/">New WPS</a></p>
-  <ul>
-    {% for item in items %}
-      <li><a href="/ui/wps/{{ item.id }}/">{{ item.code }}</a> ({{ item.status }})</li>
-    {% empty %}
-      <li>No records.</li>
-    {% endfor %}
-  </ul>
+  <p><a href="/ui/wps/new/tool/">WPS creation tool</a></p>
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">WPS</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Proyecto</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">P-Numbers</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">PQR aplicable</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Estado</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;"><a href="/ui/wps/{{ item.id }}/">{{ item.code }}</a></td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.project.code }} - {{ item.project.name }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.display_p_numbers }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.display_pqrs }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.status }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">
+              <form method="post" action="/ui/wps/{{ item.id }}/copy/" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Copiar</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="padding: 12px;" class="muted">No records.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

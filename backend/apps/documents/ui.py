@@ -3,6 +3,7 @@ import uuid
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from . import models
@@ -41,9 +42,29 @@ def document_list(request):
     q = request.GET.get("q")
     project_id = request.GET.get("project_id")
     equipment_id = request.GET.get("equipment_id")
-    items = models.Document.objects.select_related("project", "equipment").all().order_by("title")
+    welding_book_filter = (
+        Q(type__iexact="welding book")
+        | Q(type__iexact="welding_book")
+        | Q(type__iexact="weldingbook")
+        | Q(title__icontains="welding book")
+    )
+    items = (
+        models.Document.objects.select_related("project", "equipment")
+        .filter(welding_book_filter)
+        .annotate(
+            welding_map_count=Count("project__weldmap", distinct=True),
+            welding_list_count=Count("project__weld", distinct=True),
+            wps_count=Count("project__wps", distinct=True),
+            pqr_count=Count("project__pqr", distinct=True),
+        )
+        .order_by("project__code", "title")
+    )
     if q:
-        items = items.filter(title__icontains=q)
+        items = items.filter(
+            Q(title__icontains=q)
+            | Q(project__name__icontains=q)
+            | Q(project__code__icontains=q)
+        )
     if project_id:
         items = items.filter(project_id=project_id)
     if equipment_id:
@@ -77,12 +98,16 @@ def document_detail(request, pk):
 def document_create(request):
     if request.method == "POST":
         form = DocumentForm(request.POST)
+        form.fields.pop("type", None)
         if form.is_valid():
-            item = form.save()
+            item = form.save(commit=False)
+            item.type = "Welding Book"
+            item.save()
             return redirect("document_detail", pk=item.pk)
     else:
         form = DocumentForm()
-    return render(request, "documents/form.html", {"form": form, "title": "New document"})
+        form.fields.pop("type", None)
+    return render(request, "documents/form.html", {"form": form, "title": "New Welding Book"})
 
 
 @login_required
@@ -90,12 +115,16 @@ def document_edit(request, pk):
     item = get_object_or_404(models.Document, pk=pk)
     if request.method == "POST":
         form = DocumentForm(request.POST, instance=item)
+        form.fields.pop("type", None)
         if form.is_valid():
-            form.save()
+            updated = form.save(commit=False)
+            updated.type = "Welding Book"
+            updated.save()
             return redirect("document_detail", pk=item.pk)
     else:
         form = DocumentForm(instance=item)
-    return render(request, "documents/form.html", {"form": form, "title": "Edit document"})
+        form.fields.pop("type", None)
+    return render(request, "documents/form.html", {"form": form, "title": "Edit Welding Book"})
 
 
 @login_required

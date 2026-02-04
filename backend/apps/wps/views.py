@@ -186,6 +186,12 @@ class PqrViewSet(BaseRoleViewSet):
             qs = qs.filter(project_id=project_id)
         return qs
 
+    def perform_create(self, serializer):
+        serializer.save(project=None)
+
+    def perform_update(self, serializer):
+        serializer.save(project=None)
+
     @action(detail=True, methods=["post"], url_path="submit-review")
     def submit_review(self, request, pk=None):
         pqr = self.get_object()

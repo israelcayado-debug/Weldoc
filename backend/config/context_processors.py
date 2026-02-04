@@ -15,8 +15,9 @@ def nav_sections(request):
     nav = [
         {"label": "Dashboard", "url": "/", "roles": []},
         {"label": "Proyectos", "url": "/ui/projects/", "roles": ["Admin", "Project Manager", "PM"]},
-        {"label": "Documentos", "url": "/ui/documents/", "roles": ["Admin", "QA", "Document Control"]},
-        {"label": "WPS / PQR", "url": "/ui/wps/", "roles": ["Admin", "Welding", "QA"]},
+        {"label": "Welding Book", "url": "/ui/documents/", "roles": ["Admin", "QA", "Document Control"]},
+        {"label": "WPS", "url": "/ui/wps/", "roles": ["Admin", "Welding", "QA"]},
+        {"label": "PQR", "url": "/ui/pqr/", "roles": ["Admin", "Welding", "QA"]},
         {"label": "WPQ / Soldadores", "url": "/ui/wpq/", "roles": ["Admin", "Welding", "QA"]},
         {"label": "Welds / Maps", "url": "/ui/welds/", "roles": ["Admin", "Welding", "Production"]},
         {"label": "Calidad (END)", "url": "/ui/quality/nde-requests/", "roles": ["Admin", "QA", "QC"]},

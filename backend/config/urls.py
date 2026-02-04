@@ -14,6 +14,7 @@ urlpatterns = [
     path("api-auth/", include("rest_framework.urls")),
     path("", include("apps.welds.urls")),
     path("ui/wps/", include("apps.wps.ui_urls")),
+    path("ui/pqr/", include("apps.wps.pqr_ui_urls")),
     path("ui/wpq/", include("apps.wpq.ui_urls")),
     path("ui/projects/", include("apps.projects.ui_urls")),
     path("ui/documents/", include("apps.documents.ui_urls")),
