@@ -15,6 +15,7 @@ from .forms import (
 )
 from apps.projects import models as project_models
 from apps.users import models as user_models
+from apps.wps import models as wps_models
 
 
 def _resolve_app_user(request):
@@ -35,6 +36,16 @@ def _log_audit(action, entity, entity_id, request, diff=None):
         user=user,
         diff_json=diff or {},
     )
+
+
+def _missing_wps_for_publish(document):
+    qs = wps_models.Wps.objects.filter(
+        project=document.project,
+        is_current=True,
+    )
+    if document.equipment_id:
+        qs = qs.filter(equipment_id=document.equipment_id)
+    return list(qs.exclude(status=wps_models.Wps.STATUS_APPROVED).order_by("code"))
 
 
 @login_required
@@ -82,6 +93,8 @@ def document_detail(request, pk):
     signatures = models.DocumentSignature.objects.filter(
         document_revision__document=item
     ).select_related("signer", "document_revision")
+    publish_error = request.GET.get("publish_error")
+    missing_wps = request.GET.get("missing_wps", "")
     return render(
         request,
         "documents/detail.html",
@@ -90,6 +103,8 @@ def document_detail(request, pk):
             "revisions": revisions,
             "approvals": approvals,
             "signatures": signatures,
+            "publish_error": publish_error,
+            "missing_wps": missing_wps,
         },
     )
 
@@ -175,6 +190,12 @@ def document_revision_submit(request, pk):
 def document_revision_approve(request, pk):
     revision = get_object_or_404(models.DocumentRevision, pk=pk)
     if revision.status in ("draft", "in_review"):
+        missing_wps = _missing_wps_for_publish(revision.document)
+        if missing_wps:
+            missing_codes = ",".join([wps.code for wps in missing_wps])
+            return redirect(
+                f"/ui/documents/{revision.document_id}/?publish_error=wps_not_approved&missing_wps={missing_codes}"
+            )
         models.DocumentRevision.objects.filter(
             document=revision.document,
             status="approved",

@@ -22,6 +22,9 @@ class Drawing(models.Model):
             models.UniqueConstraint(fields=["project", "code", "revision"], name="drawing_project_code_rev_unique")
         ]
 
+    def __str__(self):
+        return f"{self.code}-R{self.revision}"
+
 
 class WeldMap(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -34,6 +37,9 @@ class WeldMap(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["project", "drawing"], name="weldmap_project_drawing_unique")
         ]
+
+    def __str__(self):
+        return f"{self.project.code} / {self.drawing.code}-R{self.drawing.revision}"
 
 
 class Weld(models.Model):
@@ -49,6 +55,9 @@ class Weld(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["project", "number"], name="weld_project_number_unique")
         ]
+
+    def __str__(self):
+        return self.number
 
 
 class WeldMark(models.Model):

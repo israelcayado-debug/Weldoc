@@ -2,6 +2,59 @@
 
 {% block content %}
   <h1>Welding Maps</h1>
+
+  <h2>Load drawing PDF and create/open map</h2>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create_from_pdf">
+    {% if quick_form.non_field_errors %}
+      <ul>
+        {% for err in quick_form.non_field_errors %}
+          <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    <table style="border-collapse: collapse;">
+      <tr>
+        <td style="padding: 4px;"><label for="{{ quick_form.project.id_for_label }}">Project</label></td>
+        <td style="padding: 4px;">
+          {{ quick_form.project }}
+          {% if quick_form.project.errors %}<div>{{ quick_form.project.errors }}</div>{% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 4px;"><label for="{{ quick_form.equipment.id_for_label }}">Equipment</label></td>
+        <td style="padding: 4px;">
+          {{ quick_form.equipment }}
+          {% if quick_form.equipment.errors %}<div>{{ quick_form.equipment.errors }}</div>{% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 4px;"><label for="{{ quick_form.drawing_code.id_for_label }}">Drawing code</label></td>
+        <td style="padding: 4px;">
+          {{ quick_form.drawing_code }}
+          {% if quick_form.drawing_code.errors %}<div>{{ quick_form.drawing_code.errors }}</div>{% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 4px;"><label for="{{ quick_form.revision.id_for_label }}">Revision</label></td>
+        <td style="padding: 4px;">
+          {{ quick_form.revision }}
+          {% if quick_form.revision.errors %}<div>{{ quick_form.revision.errors }}</div>{% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 4px;"><label for="{{ quick_form.upload.id_for_label }}">PDF file</label></td>
+        <td style="padding: 4px;">
+          {{ quick_form.upload }}
+          {% if quick_form.upload.errors %}<div>{{ quick_form.upload.errors }}</div>{% endif %}
+        </td>
+      </tr>
+    </table>
+    <p><button type="submit">Upload PDF and open map</button></p>
+  </form>
+
+  <h2>Search maps</h2>
   <form method="get">
     <input type="text" name="q" placeholder="Search drawing" value="{{ request.GET.q }}">
     <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
@@ -9,18 +62,63 @@
     <input type="text" name="equipment_id" placeholder="Equipment ID" value="{{ request.GET.equipment_id }}">
     <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/welds/weld-maps/new/">New welding map</a></p>
-  <ul>
-    {% for item in items %}
-      <li>
-        <a href="/ui/welds/weld-maps/{{ item.id }}/">{{ item.drawing.code }}</a>
-        ({{ item.status }})
-        {% if item.drawing.equipment %}
-          - {{ item.drawing.equipment.name }}
-        {% endif %}
-      </li>
-    {% empty %}
-      <li>No records.</li>
-    {% endfor %}
-  </ul>
+
+  <h2>Projects and equipment</h2>
+  {% for row in grouped_items %}
+    <h3>
+      <a href="/ui/welds/maps/?project_id={{ row.project.id }}">{{ row.project.name }} ({{ row.project.code }})</a>
+    </h3>
+    <p>
+      <a href="/ui/projects/{{ row.project.id }}/">Project detail</a> |
+      <a href="/ui/projects/{{ row.project.id }}/equipment/">Equipment</a> |
+      <a href="/ui/welds/drawings/?project_id={{ row.project.id }}">Drawings</a> |
+      <a href="/ui/welds/?project_id={{ row.project.id }}">Welding list</a>
+    </p>
+    <table style="border-collapse: collapse; width: 100%;">
+      <thead>
+        <tr>
+          <th style="border: 1px solid #ccc; padding: 4px; text-align: left;">Equipment</th>
+          <th style="border: 1px solid #ccc; padding: 4px; text-align: left;">Fabrication code</th>
+          <th style="border: 1px solid #ccc; padding: 4px; text-align: left;">Drawings</th>
+          <th style="border: 1px solid #ccc; padding: 4px; text-align: left;">Maps</th>
+          <th style="border: 1px solid #ccc; padding: 4px; text-align: left;">Weld list</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for equipment_row in row.equipment_rows %}
+          <tr>
+            <td style="border: 1px solid #ccc; padding: 4px;">{{ equipment_row.equipment.name }}</td>
+            <td style="border: 1px solid #ccc; padding: 4px;">{{ equipment_row.equipment.fabrication_code }}</td>
+            <td style="border: 1px solid #ccc; padding: 4px;">
+              <a href="/ui/welds/drawings/?project_id={{ row.project.id }}&equipment_id={{ equipment_row.equipment.id }}">View drawings</a>
+            </td>
+            <td style="border: 1px solid #ccc; padding: 4px;">
+              {% for item in equipment_row.maps %}
+                <a href="/ui/welds/weld-maps/{{ item.id }}/">{{ item.drawing.code }}-{{ item.drawing.revision }}</a> ({{ item.status }})<br>
+              {% empty %}
+                No maps yet.
+              {% endfor %}
+            </td>
+            <td style="border: 1px solid #ccc; padding: 4px;">
+              <a href="/ui/welds/?project_id={{ row.project.id }}&equipment_id={{ equipment_row.equipment.id }}">View weld list</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td style="border: 1px solid #ccc; padding: 4px;" colspan="5">No equipment registered.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if row.maps_without_equipment %}
+      <p>Maps without equipment:</p>
+      <ul>
+        {% for item in row.maps_without_equipment %}
+          <li><a href="/ui/welds/weld-maps/{{ item.id }}/">{{ item.drawing.code }}-{{ item.drawing.revision }}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% empty %}
+    <p>No projects found.</p>
+  {% endfor %}
 {% endblock %}

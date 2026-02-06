@@ -32,17 +32,65 @@ class JointType(models.Model):
 
 
 class Wps(models.Model):
+    STATUS_DRAFT = "draft"
+    STATUS_PENDING_APPROVAL = "pending_approval"
+    STATUS_REVIEWED = "reviewed"
+    STATUS_APPROVED = "approved"
+    STATUS_ARCHIVED = "archived"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey("projects.Project", on_delete=models.SET_NULL, null=True)
+    equipment = models.ForeignKey(
+        "projects.ProjectEquipment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     code = models.CharField(max_length=100)
     standard = models.CharField(max_length=30)
     impact_test = models.BooleanField(default=False)
     status = models.CharField(max_length=30, default="draft")
+    root_wps = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="revisions",
+    )
+    revision_number = models.IntegerField(default=0)
+    is_current = models.BooleanField(default=True)
+    submitted_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="wps_submitted_set",
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="wps_reviewed_set",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        "users.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="wps_approved_set",
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "Wps"
         constraints = [
-            models.UniqueConstraint(fields=["project", "code"], name="wps_project_code_unique")
+            models.UniqueConstraint(
+                fields=["project", "code", "revision_number"],
+                name="wps_project_code_revision_unique",
+            )
         ]
 
 

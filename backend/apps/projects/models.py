@@ -20,6 +20,9 @@ class Client(models.Model):
     class Meta:
         db_table = "Client"
 
+    def __str__(self):
+        return self.name
+
 
 class Project(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -33,6 +36,9 @@ class Project(models.Model):
 
     class Meta:
         db_table = "Project"
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
 
 
 class ProjectEquipment(models.Model):
@@ -50,6 +56,9 @@ class ProjectEquipment(models.Model):
                 name="project_equipment_fabrication_unique",
             )
         ]
+
+    def __str__(self):
+        return f"{self.fabrication_code} - {self.name}"
 
 class ProjectUser(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

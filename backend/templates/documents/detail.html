@@ -14,6 +14,12 @@
     <a href="/ui/documents/{{ item.id }}/revisions/new/">New revision</a> |
     <a href="/ui/documents/">Back</a>
   </p>
+  {% if publish_error == "wps_not_approved" %}
+    <p style="color:#b91c1c;">
+      Cannot publish Welding Book. All current WPS must be approved first.
+      {% if missing_wps %}Pending: {{ missing_wps }}{% endif %}
+    </p>
+  {% endif %}
 
   <h2>Revisions</h2>
   <ul>

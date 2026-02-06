@@ -69,6 +69,56 @@ class WeldMapForm(forms.ModelForm):
             raise forms.ValidationError("Invalid status.")
         return status
 
+    def clean(self):
+        cleaned = super().clean()
+        project = cleaned.get("project")
+        drawing = cleaned.get("drawing")
+        if project and drawing and drawing.project_id != project.id:
+            self.add_error("drawing", "Drawing does not belong to the project.")
+        return cleaned
+
+
+class WeldMapUploadForm(forms.Form):
+    project = forms.ModelChoiceField(
+        queryset=project_models.Project.objects.order_by("name"),
+    )
+    equipment = forms.ModelChoiceField(
+        queryset=project_models.ProjectEquipment.objects.none(),
+    )
+    drawing_code = forms.CharField(max_length=100)
+    revision = forms.CharField(max_length=20, initial="A")
+    upload = forms.FileField()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        project_id = None
+        if "project" in self.data:
+            project_id = self.data.get("project")
+        elif self.initial.get("project"):
+            project_id = self.initial.get("project")
+        if project_id:
+            self.fields["equipment"].queryset = project_models.ProjectEquipment.objects.filter(
+                project_id=project_id
+            ).order_by("name")
+        else:
+            self.fields["equipment"].queryset = project_models.ProjectEquipment.objects.order_by("name")
+
+    def clean_upload(self):
+        upload = self.cleaned_data.get("upload")
+        if not upload:
+            raise forms.ValidationError("PDF file is required.")
+        if not upload.name.lower().endswith(".pdf"):
+            raise forms.ValidationError("Only PDF files are allowed.")
+        return upload
+
+    def clean(self):
+        cleaned = super().clean()
+        project = cleaned.get("project")
+        equipment = cleaned.get("equipment")
+        if project and equipment and equipment.project_id != project.id:
+            self.add_error("equipment", "Equipment does not belong to the project.")
+        return cleaned
+
 
 class WeldMarkForm(forms.Form):
     weld_number = forms.CharField(max_length=100, required=False)
@@ -95,6 +145,18 @@ class WeldMarkForm(forms.Form):
             raise forms.ValidationError("Invalid JSON.")
         if not isinstance(data, list):
             raise forms.ValidationError("Must be a list of marks.")
+        return data
+
+    def clean_attributes_json(self):
+        raw = self.cleaned_data.get("attributes_json")
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            raise forms.ValidationError("Invalid JSON.")
+        if not isinstance(data, list):
+            raise forms.ValidationError("Must be a list of attributes.")
         return data
 
 

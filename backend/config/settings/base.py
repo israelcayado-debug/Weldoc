@@ -100,3 +100,6 @@ TEST_RUNNER = "config.test_runner.AppLabelDiscoverRunner"
 TEST_DISCOVER_PATTERN = "tests.py"
 TEST_DISCOVER_TOP_LEVEL = BASE_DIR
 TEST_DISCOVER_ROOT = BASE_DIR / "apps"
+
+# Allow same-origin embedding for local PDF preview inside welding map.
+X_FRAME_OPTIONS = "SAMEORIGIN"

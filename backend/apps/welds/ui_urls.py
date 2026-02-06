@@ -14,6 +14,7 @@ urlpatterns = [
     path("drawings/<uuid:pk>/edit/", ui.drawing_edit, name="drawing_edit"),
     path("drawings/<uuid:pk>/new-revision/", ui.drawing_new_revision, name="drawing_new_revision"),
     path("drawings/<uuid:pk>/copy-marks/", ui.drawing_copy_marks, name="drawing_copy_marks"),
+    path("maps/", ui.weld_map_list, name="weld_map_list_alias"),
     path("weld-maps/", ui.weld_map_list, name="weld_map_list"),
     path("weld-maps/new/", ui.weld_map_create, name="weld_map_create"),
     path("weld-maps/<uuid:pk>/", ui.weld_map_detail, name="weld_map_detail"),

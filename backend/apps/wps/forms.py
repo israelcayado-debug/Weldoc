@@ -11,6 +11,10 @@ class WpsQuickCreateForm(forms.Form):
         queryset=models.Wps._meta.get_field("project").related_model.objects.all(),
         required=False,
     )
+    equipment = forms.ModelChoiceField(
+        queryset=models.Wps._meta.get_field("equipment").related_model.objects.none(),
+        required=False,
+    )
     code = forms.CharField(max_length=100)
     standard = forms.CharField(max_length=30, initial="ASME_IX")
     impact_test = forms.BooleanField(required=False)
@@ -31,6 +35,21 @@ class WpsQuickCreateForm(forms.Form):
     process_3 = forms.ChoiceField(choices=PROCESS_CHOICES, required=False)
     special_process_3 = forms.ChoiceField(choices=SPECIAL_CHOICES, required=False)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        equipment_model = models.Wps._meta.get_field("equipment").related_model
+        project_id = None
+        if "project" in self.data:
+            project_id = self.data.get("project")
+        elif self.initial.get("project"):
+            project_id = self.initial.get("project")
+        if project_id:
+            self.fields["equipment"].queryset = equipment_model.objects.filter(
+                project_id=project_id
+            ).order_by("name")
+        else:
+            self.fields["equipment"].queryset = equipment_model.objects.order_by("name")
+
     def clean_status(self):
         status = self.cleaned_data["status"]
         if status not in ("draft", "in_review", "approved", "archived"):
@@ -39,6 +58,10 @@ class WpsQuickCreateForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
+        project = cleaned.get("project")
+        equipment = cleaned.get("equipment")
+        if project and equipment and equipment.project_id != project.id:
+            self.add_error("equipment", "Equipment does not belong to the selected project.")
         selected = []
         for index in range(1, 4):
             process = cleaned.get(f"process_{index}")
@@ -62,6 +85,7 @@ class WpsQuickCreateForm(forms.Form):
     def save(self):
         item = models.Wps.objects.create(
             project=self.cleaned_data["project"],
+            equipment=self.cleaned_data.get("equipment"),
             code=self.cleaned_data["code"],
             standard=self.cleaned_data["standard"],
             impact_test=self.cleaned_data["impact_test"],
@@ -206,13 +230,48 @@ class PqrScanUploadForm(forms.Form):
 class WpsForm(forms.ModelForm):
     class Meta:
         model = models.Wps
-        fields = ["project", "code", "standard", "impact_test", "status"]
+        fields = ["project", "equipment", "code", "standard", "impact_test", "status"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["status"].disabled = True
+        if not getattr(self.instance, "pk", None):
+            self.fields["status"].initial = models.Wps.STATUS_DRAFT
+        equipment_model = models.Wps._meta.get_field("equipment").related_model
+        project_id = None
+        if self.instance and self.instance.project_id:
+            project_id = self.instance.project_id
+        if "project" in self.data:
+            project_id = self.data.get("project")
+        elif self.initial.get("project"):
+            project_id = self.initial.get("project")
+        if project_id:
+            self.fields["equipment"].queryset = equipment_model.objects.filter(
+                project_id=project_id
+            ).order_by("name")
+        else:
+            self.fields["equipment"].queryset = equipment_model.objects.order_by("name")
 
     def clean_status(self):
-        status = self.cleaned_data["status"]
-        if status not in ("draft", "in_review", "approved", "archived"):
+        status = self.cleaned_data.get("status") or models.Wps.STATUS_DRAFT
+        allowed = {
+            models.Wps.STATUS_DRAFT,
+            models.Wps.STATUS_PENDING_APPROVAL,
+            models.Wps.STATUS_REVIEWED,
+            models.Wps.STATUS_APPROVED,
+            models.Wps.STATUS_ARCHIVED,
+        }
+        if status not in allowed:
             raise forms.ValidationError("Invalid status.")
         return status
+
+    def clean(self):
+        cleaned = super().clean()
+        project = cleaned.get("project")
+        equipment = cleaned.get("equipment")
+        if project and equipment and equipment.project_id != project.id:
+            self.add_error("equipment", "Equipment does not belong to the selected project.")
+        return cleaned
 
 
 class WpsProcessForm(forms.ModelForm):

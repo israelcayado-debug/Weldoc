@@ -13,7 +13,7 @@
   <p>
     File:
     {% if item.file_path %}
-      <a href="/media/{{ item.file_path }}">{{ item.file_path }}</a>
+      <a href="/media/{{ drawing_file_url }}">{{ item.file_path }}</a>
     {% else %}
       -
     {% endif %}
@@ -21,6 +21,11 @@
   <p>
     <a href="/ui/welds/drawings/{{ item.id }}/edit/">Edit</a> |
     <a href="/ui/welds/drawings/{{ item.id }}/new-revision/">New revision</a> |
+    {% if weld_map %}
+      <a href="/ui/welds/weld-maps/{{ weld_map.id }}/">Open welding map</a> |
+    {% else %}
+      <a href="/ui/welds/weld-maps/new/?project_id={{ item.project.id }}&drawing_id={{ item.id }}">Create welding map</a> |
+    {% endif %}
     <a href="/ui/welds/drawings/">Back</a>
   </p>
 

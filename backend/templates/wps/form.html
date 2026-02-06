@@ -1,11 +1,776 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
+  <style>
+    .wps-layout { max-width: 1460px; margin: 0 auto; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tab-btn { padding: 7px 12px; border: 1px solid #94a3b8; background: #f8fafc; cursor: pointer; font-weight: 600; }
+    .tab-btn.active { background: #e2e8f0; border-color: #475569; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .sheet-block { border: 1px solid #0f172a; margin: 10px 0; background: #fff; }
+    .sheet-title { padding: 6px 8px; border-bottom: 1px solid #0f172a; font-weight: 700; background: #e2e8f0; letter-spacing: .2px; }
+    .sheet-grid { display: grid; gap: 8px; padding: 8px; }
+    .sheet-grid.cols-4 { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+    .sheet-grid.cols-3 { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+    .sheet-grid.cols-2 { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+    .sheet-pair { display: grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap: 10px; }
+    @media (max-width: 1000px) {
+      .sheet-pair { grid-template-columns: 1fr; }
+    }
+    .field label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+    .field input, .field select { width: 100%; box-sizing: border-box; padding: 5px 6px; min-height: 30px; border: 1px solid #94a3b8; }
+    .field input[type="checkbox"], .field input[type="radio"] { width: auto; padding: 0; margin: 0; }
+    .compact-grid { grid-template-columns: repeat(2, minmax(280px, 1fr)); }
+    .option-list { display: grid; gap: 3px; justify-content: start; }
+    .option-list.two-cols { grid-template-columns: repeat(2, max-content); column-gap: 16px; row-gap: 3px; }
+    .choice-inline { display: inline-flex; align-items: center; gap: 6px; margin: 0 10px 4px 0; font-size: 12px; font-weight: 600; }
+    .choice-inline input { width: auto; margin: 0; }
+    .option-item { display: inline-flex; align-items: center; gap: 6px; margin: 0 10px 2px 0; font-size: 12px; font-weight: 600; }
+    .option-item input { width: auto; margin: 0; }
+    .field label.choice-inline, .field label.option-item { display: inline-flex; }
+    .row-title { font-weight: 700; margin: 8px 0 4px; }
+    .process-table { width: 100%; border-collapse: collapse; }
+    .process-table th, .process-table td { border: 1px solid #94a3b8; padding: 4px; vertical-align: top; }
+    .process-table th { background: #e2e8f0; font-size: 12px; }
+    .process-table input, .process-table select, .process-table textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+    #welding-data-table { table-layout: fixed; }
+    #welding-data-table th, #welding-data-table td { word-break: break-word; overflow-wrap: anywhere; }
+    .table-scroll { overflow-x: auto; width: 100%; }
+    .row-btn { padding: 2px 6px; height: 24px; min-width: 24px; }
+    .imp-span { font-size: 11px; color: #334155; margin-top: 2px; display: none; }
+    .actions { margin-top: 12px; display: flex; gap: 8px; }
+    .sequence-controls { display: flex; align-items: center; gap: 10px; padding: 8px; }
+    .sequence-controls .field { max-width: 220px; }
+    .sequence-grid { display: grid; grid-template-columns: repeat(2, minmax(260px, 1fr)); gap: 10px; padding: 8px; }
+    .sequence-card { border: 1px solid #cbd5e1; }
+    .sequence-card-head { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; padding: 8px; border-bottom: 1px solid #e2e8f0; }
+    .sequence-card-body { padding: 8px; }
+    .sequence-preview { border: 1px dashed #94a3b8; min-height: 220px; display: flex; align-items: center; justify-content: center; background: #f8fafc; overflow: hidden; }
+    .sequence-preview img { max-width: 100%; max-height: 320px; object-fit: contain; display: block; }
+    .sequence-upload-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .notes-box { width: 100%; min-height: 90px; box-sizing: border-box; padding: 6px; border: 1px solid #94a3b8; }
+    .hidden { display: none; }
+    @media (max-width: 1000px) {
+      .sequence-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <div class="wps-layout">
   <h1>{{ title }}</h1>
-  <form method="post">
+  <div class="sheet-block">
+    <div class="sheet-title">WPS Header</div>
+    <div class="sheet-grid cols-4">
+      <div class="field">
+        <label>Project</label>
+        {{ form.project }}
+      </div>
+      <div class="field">
+        <label>Equipment</label>
+        {{ form.equipment }}
+      </div>
+      <div class="field">
+        <label>Standard</label>
+        {{ form.standard }}
+      </div>
+      <div class="field">
+        <label>Status</label>
+        {{ form.status }}
+      </div>
+      <div class="field">
+        <label class="choice-inline"><span>Add imperial measures</span><input type="checkbox" id="id_imperial_enabled" name="imperial_enabled" {% if tab1.imperial_enabled == "1" %}checked{% endif %}></label>
+      </div>
+    </div>
+    {{ form.impact_test.as_hidden }}
+  </div>
+
+  <div class="tabs">
+    <button type="button" class="tab-btn {% if active_tab != 'tab2' %}active{% endif %}" data-tab="tab1">Sheet 1</button>
+    <button type="button" class="tab-btn {% if active_tab == 'tab2' %}active{% endif %}" data-tab="tab2">Sheet 2</button>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Save</button>
+    <input type="hidden" id="id_active_tab" name="active_tab" value="{{ active_tab|default:'tab1' }}">
+
+    <div id="tab1" class="tab-panel {% if active_tab != 'tab2' %}active{% endif %}">
+      <div class="sheet-block">
+        <div class="sheet-title">WELDING PROCEDURE SPECIFICATION</div>
+        <div class="sheet-grid cols-4">
+          <div class="field">
+            <label>W.P.S N°</label>
+            {{ form.code }}
+          </div>
+          <div class="field">
+            <label>Supporting Procedure Qualification</label>
+            <select id="id_supporting_pqr" name="supporting_pqr">
+              <option value="HOLD" {% if tab1.supporting_pqr == "HOLD" or not tab1.supporting_pqr %}selected{% endif %}>HOLD</option>
+              {% for pqr in pqr_items %}
+                <option value="{{ pqr.id }}" {% if tab1.supporting_pqr == pqr.id|stringformat:"s" %}selected{% endif %}>
+                  {{ pqr.code }}{% if pqr.project %} ({{ pqr.project.code }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="text" id="id_pqr_date" name="pqr_date" value="{{ tab1.pqr_date|default_if_none:'' }}">
+          </div>
+          <div class="field">
+            <label>Reference</label>
+            <input type="text" id="id_reference_code" name="reference_code" value="{{ tab1.reference_code|default_if_none:'' }}">
+          </div>
+        </div>
+        <div class="sheet-grid compact-grid">
+          <div class="field">
+            <label>Type(s)</label>
+            <div class="option-list">
+              <label class="option-item"><span>Manual</span><input type="checkbox" name="welding_type_manual" {% if tab1.welding_type_manual %}checked{% endif %}></label>
+              <label class="option-item"><span>Semiautomatic</span><input type="checkbox" name="welding_type_semiautomatic" {% if tab1.welding_type_semiautomatic %}checked{% endif %}></label>
+              <label class="option-item"><span>Automatic</span><input type="checkbox" name="welding_type_automatic" {% if tab1.welding_type_automatic %}checked{% endif %}></label>
+              <label class="option-item"><span>Others</span><input type="checkbox" name="welding_type_others" {% if tab1.welding_type_others %}checked{% endif %}></label>
+            </div>
+          </div>
+          <div class="field">
+            <label>Welding process(es)</label>
+            <div class="option-list two-cols">
+              <label class="option-item"><span>GTAW</span><input type="checkbox" name="welding_process_gtaw" {% if tab1.welding_process_gtaw %}checked{% endif %}></label>
+              <label class="option-item"><span>SMAW</span><input type="checkbox" name="welding_process_smaw" {% if tab1.welding_process_smaw %}checked{% endif %}></label>
+              <label class="option-item"><span>GMAW</span><input type="checkbox" name="welding_process_gmaw" {% if tab1.welding_process_gmaw %}checked{% endif %}></label>
+              <label class="option-item"><span>SAW</span><input type="checkbox" name="welding_process_saw" {% if tab1.welding_process_saw %}checked{% endif %}></label>
+              <label class="option-item"><span>SPRAY</span><input type="checkbox" name="welding_process_spray" {% if tab1.welding_process_spray %}checked{% endif %}></label>
+              <label class="option-item"><span>SHORT ARC</span><input type="checkbox" name="welding_process_short_arc" {% if tab1.welding_process_short_arc %}checked{% endif %}></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-block">
+        <div class="sheet-title">JOINTS (QW-402)</div>
+        <div class="sheet-grid cols-3">
+          <div class="field">
+            <label>Backing</label>
+            <label class="choice-inline"><span>Yes</span><input type="radio" name="backing" value="YES" {% if tab1.backing == "YES" %}checked{% endif %}></label>
+            <label class="choice-inline"><span>No</span><input type="radio" name="backing" value="NO" {% if tab1.backing == "NO" %}checked{% endif %}></label>
+          </div>
+          <div class="field">
+            <label>Process(es) using backing</label>
+            <input type="text" name="backing_processes" value="{{ tab1.backing_processes|default_if_none:'' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-block">
+        <div class="sheet-title">BASE METALS (QW-403)</div>
+        <div class="sheet-grid cols-4">
+          <div class="field"><label>Material 1 specification</label><input type="text" name="base_material_1_spec" value="{{ tab1.base_material_1_spec|default_if_none:'' }}"></div>
+          <div class="field"><label>Material 1 P-No.</label><input type="text" name="base_material_1_p_no" value="{{ tab1.base_material_1_p_no|default_if_none:'' }}"></div>
+          <div class="field"><label>Material 1 Group No.</label><input type="text" name="base_material_1_group_no" value="{{ tab1.base_material_1_group_no|default_if_none:'' }}"></div>
+          <div class="field"><label>Chemical analysis / mech. properties 1</label><input type="text" name="chemical_analysis_1" value="{{ tab1.chemical_analysis_1|default_if_none:'' }}"></div>
+          <div class="field"><label>Material 2 specification</label><input type="text" name="base_material_2_spec" value="{{ tab1.base_material_2_spec|default_if_none:'' }}"></div>
+          <div class="field"><label>Material 2 P-No.</label><input type="text" name="base_material_2_p_no" value="{{ tab1.base_material_2_p_no|default_if_none:'' }}"></div>
+          <div class="field"><label>Material 2 Group No.</label><input type="text" name="base_material_2_group_no" value="{{ tab1.base_material_2_group_no|default_if_none:'' }}"></div>
+          <div class="field"><label>Chemical analysis / mech. properties 2</label><input type="text" name="chemical_analysis_2" value="{{ tab1.chemical_analysis_2|default_if_none:'' }}"></div>
+        </div>
+        <div class="sheet-grid cols-4">
+          <div class="field">
+            <label>Thickness range groove (mm)</label>
+            <input class="mm-field" type="text" name="thickness_range_groove" value="{{ tab1.thickness_range_groove|default_if_none:'' }}">
+            <div class="imp-span"></div>
+          </div>
+          <div class="field">
+            <label>Thickness range fillet (mm)</label>
+            <input class="mm-field" type="text" name="thickness_range_fillet" value="{{ tab1.thickness_range_fillet|default_if_none:'' }}">
+            <div class="imp-span"></div>
+          </div>
+          <div class="field">
+            <label>Pipe diameter range groove (mm)</label>
+            <input class="mm-field" type="text" name="pipe_diameter_range_groove" value="{{ tab1.pipe_diameter_range_groove|default_if_none:'' }}">
+            <div class="imp-span"></div>
+          </div>
+          <div class="field">
+            <label>Pipe diameter range fillet (mm)</label>
+            <input class="mm-field" type="text" name="pipe_diameter_range_fillet" value="{{ tab1.pipe_diameter_range_fillet|default_if_none:'' }}">
+            <div class="imp-span"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-block">
+        <div class="sheet-title">FILLER METAL (QW-404)</div>
+        <p><button type="button" id="add-process-row" class="row-btn">+ Add line</button></p>
+        <table class="process-table">
+          <thead>
+            <tr>
+              <th>Process</th><th>F-No.</th><th>A-No.</th><th>SPEC N° (SFA)</th>
+              <th>AWS N° (Class)</th><th>Size (mm)</th><th>Thickness groove</th><th>Thickness fillet</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in process_rows %}
+              <tr class="process-row" data-row-index="{{ row.idx }}">
+                <td>
+                  <select name="process_line_{{ row.idx }}_process">
+                    <option value=""></option>
+                    <option value="GTAW" {% if row.process == "GTAW" %}selected{% endif %}>GTAW</option>
+                    <option value="SMAW" {% if row.process == "SMAW" %}selected{% endif %}>SMAW</option>
+                    <option value="GMAW" {% if row.process == "GMAW" %}selected{% endif %}>GMAW</option>
+                    <option value="SAW" {% if row.process == "SAW" %}selected{% endif %}>SAW</option>
+                  </select>
+                </td>
+                <td><input type="text" name="process_line_{{ row.idx }}_f_no" value="{{ row.f_no|default_if_none:'' }}"></td>
+                <td><input type="text" name="process_line_{{ row.idx }}_a_no" value="{{ row.a_no|default_if_none:'' }}"></td>
+                <td><input type="text" name="process_line_{{ row.idx }}_spec_sfa" value="{{ row.spec_sfa|default_if_none:'' }}"></td>
+                <td><input type="text" name="process_line_{{ row.idx }}_aws_class" value="{{ row.aws_class|default_if_none:'' }}"></td>
+                <td><input class="mm-field" type="text" name="process_line_{{ row.idx }}_size_mm" value="{{ row.size_mm|default_if_none:'' }}"><div class="imp-span"></div></td>
+                <td><input class="mm-field" type="text" name="process_line_{{ row.idx }}_thickness_groove" value="{{ row.thickness_groove|default_if_none:'' }}"><div class="imp-span"></div></td>
+                <td><input class="mm-field" type="text" name="process_line_{{ row.idx }}_thickness_fillet" value="{{ row.thickness_fillet|default_if_none:'' }}"><div class="imp-span"></div></td>
+                <td><button type="button" class="row-btn remove-process-row">-</button></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="sheet-pair">
+        <div class="sheet-block">
+          <div class="sheet-title">PREHEAT (QW-406)</div>
+          <div class="sheet-grid cols-2">
+            <div class="field"><label>Preheat thickness (mm)</label><input class="mm-field" type="text" name="preheat_thickness" value="{{ tab1.preheat_thickness|default_if_none:'' }}"><div class="imp-span"></div></div>
+            <div class="field"><label>Preheat temperature (°C)</label><input type="text" name="preheat_temperature" value="{{ tab1.preheat_temperature|default_if_none:'' }}"></div>
+            <div class="field"><label>Max interpass temp (°C)</label><input type="text" name="max_interpass_temp" value="{{ tab1.max_interpass_temp|default_if_none:'' }}"></div>
+            <div class="field">
+              <label>Preheat maintenance</label>
+              <label class="choice-inline"><span>Yes</span><input type="radio" name="preheat_maintenance" value="YES" {% if tab1.preheat_maintenance == "YES" %}checked{% endif %}></label>
+              <label class="choice-inline"><span>No</span><input type="radio" name="preheat_maintenance" value="NO" {% if tab1.preheat_maintenance == "NO" %}checked{% endif %}></label>
+            </div>
+            <div class="field"><label>Immediate postheating</label><input type="text" name="immediate_postheating" value="{{ tab1.immediate_postheating|default_if_none:'' }}"></div>
+            <div class="field"><label>Preheating method</label><input type="text" name="preheating_method" value="{{ tab1.preheating_method|default_if_none:'' }}"></div>
+            <div class="field"><label>Checked by</label><input type="text" name="checked_by" value="{{ tab1.checked_by|default_if_none:'' }}"></div>
+            <div class="field"><label>Others</label><input type="text" name="others_preheat" value="{{ tab1.others_preheat|default_if_none:'' }}"></div>
+          </div>
+        </div>
+
+        <div class="sheet-block">
+          <div class="sheet-title">POST WELD HEAT TREATMENT (QW-407)</div>
+          <div class="sheet-grid cols-2">
+            <div class="field"><label>Temperature range</label><input type="text" name="pwht_temp_range" value="{{ tab1.pwht_temp_range|default_if_none:'' }}"></div>
+            <div class="field"><label>Time range</label><input type="text" name="pwht_time_range" value="{{ tab1.pwht_time_range|default_if_none:'' }}"></div>
+            <div class="field"><label>Heating rate</label><input type="text" name="pwht_heating_rate" value="{{ tab1.pwht_heating_rate|default_if_none:'' }}"></div>
+            <div class="field"><label>Cooling rate</label><input type="text" name="pwht_cooling_rate" value="{{ tab1.pwht_cooling_rate|default_if_none:'' }}"></div>
+            <div class="field"><label>Other</label><input type="text" name="pwht_other" value="{{ tab1.pwht_other|default_if_none:'' }}"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-pair">
+        <div class="sheet-block">
+          <div class="sheet-title">GAS (QW-408)</div>
+          <div class="sheet-grid cols-2">
+            <div class="field"><label>Flux trade name</label><input type="text" name="flux_trade_name" value="{{ tab1.flux_trade_name|default_if_none:'' }}"></div>
+            <div class="field"><label>Type</label><input type="text" name="flux_type" value="{{ tab1.flux_type|default_if_none:'' }}"></div>
+            <div class="field"><label>Class</label><input type="text" name="flux_class" value="{{ tab1.flux_class|default_if_none:'' }}"></div>
+            <div class="field"><label>Max deposit GTAW</label><input type="text" name="max_deposit_gtaw" value="{{ tab1.max_deposit_gtaw|default_if_none:'' }}"></div>
+            <div class="field"><label>Max deposit other</label><input type="text" name="max_deposit_other" value="{{ tab1.max_deposit_other|default_if_none:'' }}"></div>
+            <div class="field"><label>Supplemental filler metal</label><input type="text" name="supplemental_filler" value="{{ tab1.supplemental_filler|default_if_none:'' }}"></div>
+            <div class="field"><label>Consumable inert</label><input type="text" name="consumable_inert" value="{{ tab1.consumable_inert|default_if_none:'' }}"></div>
+            <div class="field"><label>Shielding gas</label><input type="text" name="gas_shielding" value="{{ tab1.gas_shielding|default_if_none:'' }}"></div>
+            <div class="field"><label>Percent composition</label><input type="text" name="gas_percent" value="{{ tab1.gas_percent|default_if_none:'' }}"></div>
+            <div class="field"><label>Flow rate</label><input type="text" name="gas_flow" value="{{ tab1.gas_flow|default_if_none:'' }}"></div>
+            <div class="field"><label>Gas backing</label><input type="text" name="gas_backing" value="{{ tab1.gas_backing|default_if_none:'' }}"></div>
+            <div class="field"><label>Trailing shielding gas composition</label><input type="text" name="trailing_gas" value="{{ tab1.trailing_gas|default_if_none:'' }}"></div>
+          </div>
+        </div>
+
+        <div class="sheet-block">
+          <div class="sheet-title">ELECTRICAL CHARACTERISTICS (QW-409)</div>
+          <div class="sheet-grid cols-2">
+            <div class="field">
+              <label>Current</label>
+              <label class="choice-inline"><span>AC</span><input type="radio" name="current_type" value="AC" {% if tab1.current_type == "AC" %}checked{% endif %}></label>
+              <label class="choice-inline"><span>DC</span><input type="radio" name="current_type" value="DC" {% if tab1.current_type == "DC" %}checked{% endif %}></label>
+            </div>
+            <div class="field">
+              <label>Polarity</label>
+              <label class="choice-inline"><span>REVERSE</span><input type="radio" name="polarity" value="REVERSE" {% if tab1.polarity == "REVERSE" %}checked{% endif %}></label>
+              <label class="choice-inline"><span>STRAIGHT</span><input type="radio" name="polarity" value="STRAIGHT" {% if tab1.polarity == "STRAIGHT" %}checked{% endif %}></label>
+            </div>
+            <div class="field">
+              <label>Pulsed current</label>
+              <label class="choice-inline"><span>Yes</span><input type="radio" name="pulsed_current" value="YES" {% if tab1.pulsed_current == "YES" %}checked{% endif %}></label>
+              <label class="choice-inline"><span>No</span><input type="radio" name="pulsed_current" value="NO" {% if tab1.pulsed_current == "NO" %}checked{% endif %}></label>
+            </div>
+            <div class="field">
+              <label>GMAW transfer mode</label>
+              <label class="choice-inline"><span>SHORT ARC</span><input type="radio" name="gmaw_transfer_mode" value="SHORT ARC" {% if tab1.gmaw_transfer_mode == "SHORT ARC" %}checked{% endif %}></label>
+              <label class="choice-inline"><span>SPRAY ARC</span><input type="radio" name="gmaw_transfer_mode" value="SPRAY ARC" {% if tab1.gmaw_transfer_mode == "SPRAY ARC" %}checked{% endif %}></label>
+            </div>
+            <div class="field"><label>Tungsten electrode type</label><input type="text" name="tungsten_type" value="{{ tab1.tungsten_type|default_if_none:'' }}"></div>
+            <div class="field"><label>Tungsten size (mm)</label><input class="mm-field" type="text" name="tungsten_size" value="{{ tab1.tungsten_size|default_if_none:'' }}"><div class="imp-span"></div></div>
+            <div class="field"><label>Electrode wire feed speed</label><input type="text" name="electrode_wire_feed_speed" value="{{ tab1.electrode_wire_feed_speed|default_if_none:'' }}"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="tab2" class="tab-panel {% if active_tab == 'tab2' %}active{% endif %}">
+      <div class="sheet-block">
+        <div class="sheet-title">TECHNIQUE (QW-410)</div>
+        <div class="sheet-grid cols-4">
+          <div class="field">
+            <label>Technique beads</label>
+            <label class="choice-inline"><span>String bead</span><input type="checkbox" name="technique_string_bead" {% if tab1.technique_string_bead %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Wave bead</span><input type="checkbox" name="technique_wave_bead" {% if tab1.technique_wave_bead %}checked{% endif %}></label>
+          </div>
+          <div class="field">
+            <label>Orifice cup size</label>
+            <input type="text" name="technique_orifice_cup_size" value="{{ tab1.technique_orifice_cup_size|default_if_none:'' }}">
+          </div>
+          <div class="field">
+            <label>Gas cup size</label>
+            <input type="text" name="technique_gas_cup_size" value="{{ tab1.technique_gas_cup_size|default_if_none:'' }}">
+          </div>
+        </div>
+        <div class="sheet-grid cols-4">
+          <div class="field">
+            <label>Initial and interpass cleaning</label>
+            <label class="choice-inline"><span>Brushing</span><input type="checkbox" name="technique_cleaning_brushing" {% if tab1.technique_cleaning_brushing %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Grinding</span><input type="checkbox" name="technique_cleaning_grinding" {% if tab1.technique_cleaning_grinding %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Chipping</span><input type="checkbox" name="technique_cleaning_chipping" {% if tab1.technique_cleaning_chipping %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Other</span><input type="checkbox" name="technique_cleaning_other" {% if tab1.technique_cleaning_other %}checked{% endif %}></label>
+          </div>
+          <div class="field">
+            <label>Method of back gouging</label>
+            <label class="choice-inline"><span>Grinding</span><input type="checkbox" name="technique_back_gouging_grinding" {% if tab1.technique_back_gouging_grinding %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Chipping</span><input type="checkbox" name="technique_back_gouging_chipping" {% if tab1.technique_back_gouging_chipping %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Machining</span><input type="checkbox" name="technique_back_gouging_machining" {% if tab1.technique_back_gouging_machining %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Peening</span><input type="checkbox" name="technique_back_gouging_peening" {% if tab1.technique_back_gouging_peening %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Other</span><input type="checkbox" name="technique_back_gouging_other" {% if tab1.technique_back_gouging_other %}checked{% endif %}></label>
+          </div>
+          <div class="field">
+            <label>Contact tube to work distance</label>
+            <input type="text" name="technique_contact_tube_distance" value="{{ tab1.technique_contact_tube_distance|default_if_none:'' }}">
+          </div>
+          <div class="field">
+            <label>Travel speed (range)</label>
+            <input type="text" name="technique_travel_speed_range" value="{{ tab1.technique_travel_speed_range|default_if_none:'' }}">
+          </div>
+        </div>
+        <div class="sheet-grid cols-4">
+          <div class="field">
+            <label>Oscillation</label>
+            <label class="choice-inline"><span>No</span><input type="radio" name="technique_oscillation" value="NO" {% if tab1.technique_oscillation == "NO" %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Yes</span><input type="radio" name="technique_oscillation" value="YES" {% if tab1.technique_oscillation == "YES" %}checked{% endif %}></label>
+            <label class="choice-inline"><span>N/A</span><input type="radio" name="technique_oscillation" value="NA" {% if tab1.technique_oscillation == "NA" %}checked{% endif %}></label>
+          </div>
+          <div class="field">
+            <label>Pass(es) per side</label>
+            <label class="choice-inline"><span>Single</span><input type="radio" name="technique_passes_per_side" value="SINGLE" {% if tab1.technique_passes_per_side == "SINGLE" %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Multiple</span><input type="radio" name="technique_passes_per_side" value="MULTIPLE" {% if tab1.technique_passes_per_side == "MULTIPLE" %}checked{% endif %}></label>
+          </div>
+          <div class="field">
+            <label>Electrodes</label>
+            <label class="choice-inline"><span>Single</span><input type="radio" name="technique_electrodes" value="SINGLE" {% if tab1.technique_electrodes == "SINGLE" %}checked{% endif %}></label>
+            <label class="choice-inline"><span>Multiple</span><input type="radio" name="technique_electrodes" value="MULTIPLE" {% if tab1.technique_electrodes == "MULTIPLE" %}checked{% endif %}></label>
+          </div>
+          <div class="field">
+            <label>Other</label>
+            <input type="text" name="technique_other" value="{{ tab1.technique_other|default_if_none:'' }}">
+          </div>
+        </div>
+        <div class="sheet-grid cols-2">
+          <div class="field">
+            <label>Electrode spacing</label>
+            <input type="text" name="technique_electrode_spacing" value="{{ tab1.technique_electrode_spacing|default_if_none:'' }}">
+          </div>
+          <div class="field">
+            <label>Thermal processes</label>
+            <input type="text" name="technique_thermal_processes" value="{{ tab1.technique_thermal_processes|default_if_none:'' }}">
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-block">
+        <div class="sheet-title">PREPARATION WELDING SEQUENCE</div>
+        <div class="sequence-controls">
+          <button type="button" id="add-sequence-box" class="row-btn">+ Add sequence box</button>
+        </div>
+        <div class="sequence-grid" id="sequence-grid">
+          {% for block in sequence_blocks %}
+            <div class="sequence-card{% if not block.visible %} hidden{% endif %}" data-seq-card="{{ block.idx }}">
+              <div class="sequence-card-head">
+                <input type="hidden" name="sequence_block_{{ block.idx }}_enabled" value="{{ block.enabled }}" class="sequence-enabled-input">
+                <div class="field">
+                  <label>Position (QW-405)</label>
+                  <input type="text" name="sequence_block_{{ block.idx }}_position" value="{{ block.position }}">
+                </div>
+                <div class="field">
+                  <label>PROGR. UPHILL (if applicable)</label>
+                  <input type="text" name="sequence_block_{{ block.idx }}_progress_uphill" value="{{ block.progress_uphill }}">
+                </div>
+                <div class="field">
+                  <label>Action</label>
+                  <button type="button" class="row-btn remove-sequence-box">-</button>
+                </div>
+              </div>
+              <div class="sequence-card-body">
+                <div class="sequence-upload-row">
+                  <input type="hidden" name="sequence_block_{{ block.idx }}_image" value="{{ block.image_path }}">
+                  <input type="file" name="sequence_block_{{ block.idx }}_image_file" accept="image/*">
+                  {% if block.image_path %}
+                    <label class="choice-inline"><span>Clear</span><input type="checkbox" name="sequence_block_{{ block.idx }}_image_clear" value="1"></label>
+                  {% endif %}
+                </div>
+                <div class="sequence-preview">
+                  {% if block.image_url %}
+                    <img src="{{ block.image_url }}" alt="Sequence block {{ block.idx }}">
+                  {% else %}
+                    <span>No image</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="sheet-block">
+        <div class="sheet-title">WELDING DATA</div>
+        <p><button type="button" id="add-welding-row" class="row-btn">+ Add line</button></p>
+        <div class="table-scroll">
+          <table class="process-table" id="welding-data-table">
+            <thead>
+              <tr>
+                <th>Weld layer(s)</th>
+                <th>Process</th>
+                <th>Filler metal</th>
+                <th>Diameter (mm)</th>
+                <th>Amp (range)</th>
+                <th>Volt (range)</th>
+                <th>Travel speed (mm/min)</th>
+                <th>Max heat input (kJ/mm)</th>
+                <th>Shielding gas / Flux</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in welding_data_rows %}
+                <tr class="welding-data-row" data-row-index="{{ row.idx }}">
+                  <td><input type="text" name="welding_data_line_{{ row.idx }}_weld_layer" value="{{ row.weld_layer }}"></td>
+                  <td><input type="text" name="welding_data_line_{{ row.idx }}_process" value="{{ row.process }}"></td>
+                  <td><input type="text" name="welding_data_line_{{ row.idx }}_filler_metal" value="{{ row.filler_metal }}"></td>
+                  <td><input class="mm-field" type="text" name="welding_data_line_{{ row.idx }}_diameter_mm" value="{{ row.diameter_mm }}"><div class="imp-span"></div></td>
+                  <td><input type="text" name="welding_data_line_{{ row.idx }}_amp_range" value="{{ row.amp_range }}"></td>
+                  <td><input type="text" name="welding_data_line_{{ row.idx }}_volt_range" value="{{ row.volt_range }}"></td>
+                  <td><input type="text" name="welding_data_line_{{ row.idx }}_travel_speed" value="{{ row.travel_speed }}"></td>
+                  <td><input type="text" name="welding_data_line_{{ row.idx }}_max_heat_input" value="{{ row.max_heat_input }}"></td>
+                  <td><input type="text" name="welding_data_line_{{ row.idx }}_shielding_gas" value="{{ row.shielding_gas }}"></td>
+                  <td><button type="button" class="row-btn remove-welding-row">-</button></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="sheet-grid cols-1">
+          <div class="field">
+            <label>Notes</label>
+            <textarea class="notes-box" name="welding_data_notes">{{ tab1.welding_data_notes|default_if_none:'' }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet-block">
+        <div class="sheet-title">TACK WELDING</div>
+        <div class="sheet-grid cols-4">
+          <div class="field">
+            <label>Tack welding according to WPS No.</label>
+            <input type="text" name="tack_welding_wps_no" value="{{ tab1.tack_welding_wps_no|default_if_none:'' }}">
+          </div>
+          <div class="field">
+            <label>Pass No.</label>
+            <input type="text" name="tack_welding_pass_no" value="{{ tab1.tack_welding_pass_no|default_if_none:'' }}">
+          </div>
+          <div class="field">
+            <label>Weld bead length min (mm)</label>
+            <input type="text" name="tack_welding_bead_length_min_mm" value="{{ tab1.tack_welding_bead_length_min_mm|default_if_none:'' }}">
+          </div>
+          <div class="field">
+            <label>Min no. pass(es) required</label>
+            <input type="text" name="tack_welding_min_passes_required" value="{{ tab1.tack_welding_min_passes_required|default_if_none:'' }}">
+          </div>
+        </div>
+        <div class="sheet-grid cols-1">
+          <div class="field">
+            <label>Note 1</label>
+            <textarea class="notes-box" name="tack_welding_note_1">{{ tab1.tack_welding_note_1|default_if_none:'' }}</textarea>
+          </div>
+          <div class="field">
+            <label>Note 2</label>
+            <textarea class="notes-box" name="tack_welding_note_2">{{ tab1.tack_welding_note_2|default_if_none:'' }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit">Save</button>
+      <a href="/ui/wps/">Back</a>
+    </div>
   </form>
-  <p><a href="/ui/wps/">Back</a></p>
+  </div>
+
+  <script>
+    (function() {
+      function toImperialText(mmValue) {
+        var n = parseFloat(String(mmValue).replace(",", "."));
+        if (isNaN(n)) return "";
+        var inch = n / 25.4;
+        return n.toFixed(2) + " mm (" + inch.toFixed(3) + "\")";
+      }
+
+      var tabButtons = document.querySelectorAll(".tab-btn");
+      tabButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          var tab = btn.getAttribute("data-tab");
+          document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
+          document.querySelectorAll(".tab-panel").forEach(function(p) { p.classList.remove("active"); });
+          btn.classList.add("active");
+          document.getElementById(tab).classList.add("active");
+          var activeTabInput = document.getElementById("id_active_tab");
+          if (activeTabInput) activeTabInput.value = tab;
+        });
+      });
+
+      var pqrSelect = document.getElementById("id_supporting_pqr");
+      var pqrDate = document.getElementById("id_pqr_date");
+      var projectSelect = document.getElementById("id_project");
+      var reference = document.getElementById("id_reference_code");
+      var imperialToggle = document.getElementById("id_imperial_enabled");
+      var holdFields = [
+        "thickness_range_groove",
+        "thickness_range_fillet",
+        "pipe_diameter_range_groove",
+        "pipe_diameter_range_fillet"
+      ];
+
+      function applyHoldState() {
+        if (!pqrSelect) return;
+        var isHold = pqrSelect.value === "HOLD";
+        if (pqrDate) {
+          if (isHold) pqrDate.value = "HOLD";
+          else if (pqrDate.value === "HOLD") pqrDate.value = "";
+        }
+        holdFields.forEach(function(name) {
+          var field = document.querySelector('[name="' + name + '"]');
+          if (!field) return;
+          if (isHold) field.value = "HOLD";
+        });
+      }
+
+      function applyReferenceFromProject() {
+        if (!projectSelect || !reference) return;
+        var opt = projectSelect.options[projectSelect.selectedIndex];
+        if (!opt || !opt.text) return;
+        var code = opt.text.split(" - ")[0].trim();
+        if (!reference.value || reference.value === "HOLD") {
+          reference.value = code;
+        }
+      }
+
+      function applyImperialHints() {
+        var enabled = imperialToggle && imperialToggle.checked;
+        document.querySelectorAll(".mm-field").forEach(function(input) {
+          var hint = input.parentElement ? input.parentElement.querySelector(".imp-span") : null;
+          if (!hint) return;
+          if (!enabled) {
+            hint.style.display = "none";
+            hint.textContent = "";
+            return;
+          }
+          hint.style.display = "block";
+          hint.textContent = toImperialText(input.value);
+        });
+      }
+
+      function nextProcessRowIndex() {
+        var rows = document.querySelectorAll(".process-row");
+        var maxIdx = 0;
+        rows.forEach(function(row) {
+          var idx = parseInt(row.getAttribute("data-row-index"), 10);
+          if (!isNaN(idx)) {
+            maxIdx = Math.max(maxIdx, idx);
+          }
+        });
+        return maxIdx + 1;
+      }
+
+      function nextWeldingRowIndex() {
+        var rows = document.querySelectorAll(".welding-data-row");
+        var maxIdx = 0;
+        rows.forEach(function(row) {
+          var idx = parseInt(row.getAttribute("data-row-index"), 10);
+          if (!isNaN(idx)) maxIdx = Math.max(maxIdx, idx);
+        });
+        return maxIdx + 1;
+      }
+
+      function wireRemoveButtons() {
+        document.querySelectorAll(".remove-process-row").forEach(function(btn) {
+          btn.onclick = function() {
+            var rows = document.querySelectorAll(".process-row");
+            if (rows.length <= 1) {
+              return;
+            }
+            var row = btn.closest(".process-row");
+            if (row) {
+              row.remove();
+            }
+          };
+        });
+      }
+
+      function wireWeldingRemoveButtons() {
+        document.querySelectorAll(".remove-welding-row").forEach(function(btn) {
+          btn.onclick = function() {
+            var rows = document.querySelectorAll(".welding-data-row");
+            if (rows.length <= 1) return;
+            var row = btn.closest(".welding-data-row");
+            if (row) row.remove();
+          };
+        });
+      }
+
+      function countVisibleSequenceCards() {
+        var visible = 0;
+        document.querySelectorAll("[data-seq-card]").forEach(function(card) {
+          if (!card.classList.contains("hidden")) visible += 1;
+        });
+        return visible;
+      }
+
+      function clearSequenceCard(card) {
+        card.querySelectorAll('input[type="text"]').forEach(function(input) { input.value = ""; });
+        card.querySelectorAll('input[type="file"]').forEach(function(input) { input.value = ""; });
+        card.querySelectorAll('input[type="checkbox"]').forEach(function(input) { input.checked = false; });
+        var imageHidden = card.querySelector('input[name$="_image"]');
+        if (imageHidden) imageHidden.value = "";
+        var preview = card.querySelector(".sequence-preview");
+        if (preview) preview.innerHTML = "<span>No image</span>";
+      }
+
+      function setSequenceCardEnabled(card, enabled) {
+        var enabledInput = card.querySelector(".sequence-enabled-input");
+        if (enabledInput) enabledInput.value = enabled ? "1" : "0";
+        card.classList.toggle("hidden", !enabled);
+      }
+
+      function wireSequenceButtons() {
+        document.querySelectorAll(".remove-sequence-box").forEach(function(btn) {
+          btn.onclick = function() {
+            var card = btn.closest("[data-seq-card]");
+            if (!card) return;
+            if (countVisibleSequenceCards() <= 1) return;
+            clearSequenceCard(card);
+            setSequenceCardEnabled(card, false);
+          };
+        });
+      }
+
+      function addSequenceBox() {
+        var cards = Array.prototype.slice.call(document.querySelectorAll("[data-seq-card]"));
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i];
+          if (card.classList.contains("hidden")) {
+            setSequenceCardEnabled(card, true);
+            return;
+          }
+        }
+      }
+
+      var addProcessRowBtn = document.getElementById("add-process-row");
+      if (addProcessRowBtn) {
+        addProcessRowBtn.addEventListener("click", function() {
+          var tbody = document.querySelector(".process-table tbody");
+          if (!tbody) return;
+          var idx = nextProcessRowIndex();
+          var tr = document.createElement("tr");
+          tr.className = "process-row";
+          tr.setAttribute("data-row-index", String(idx));
+          tr.innerHTML =
+            '<td><select name="process_line_' + idx + '_process">' +
+              '<option value=""></option>' +
+              '<option value="GTAW">GTAW</option>' +
+              '<option value="SMAW">SMAW</option>' +
+              '<option value="GMAW">GMAW</option>' +
+              '<option value="SAW">SAW</option>' +
+            '</select></td>' +
+            '<td><input type="text" name="process_line_' + idx + '_f_no"></td>' +
+            '<td><input type="text" name="process_line_' + idx + '_a_no"></td>' +
+            '<td><input type="text" name="process_line_' + idx + '_spec_sfa"></td>' +
+            '<td><input type="text" name="process_line_' + idx + '_aws_class"></td>' +
+            '<td><input class="mm-field" type="text" name="process_line_' + idx + '_size_mm"><div class="imp-span"></div></td>' +
+            '<td><input class="mm-field" type="text" name="process_line_' + idx + '_thickness_groove"><div class="imp-span"></div></td>' +
+            '<td><input class="mm-field" type="text" name="process_line_' + idx + '_thickness_fillet"><div class="imp-span"></div></td>' +
+            '<td><button type="button" class="row-btn remove-process-row">-</button></td>';
+          tbody.appendChild(tr);
+          wireRemoveButtons();
+          applyImperialHints();
+          tr.querySelectorAll(".mm-field").forEach(function(input) {
+            input.addEventListener("input", applyImperialHints);
+          });
+        });
+      }
+
+      var addWeldingRowBtn = document.getElementById("add-welding-row");
+      if (addWeldingRowBtn) {
+        addWeldingRowBtn.addEventListener("click", function() {
+          var tbody = document.querySelector("#welding-data-table tbody");
+          if (!tbody) return;
+          var idx = nextWeldingRowIndex();
+          var tr = document.createElement("tr");
+          tr.className = "welding-data-row";
+          tr.setAttribute("data-row-index", String(idx));
+          tr.innerHTML =
+            '<td><input type="text" name="welding_data_line_' + idx + '_weld_layer"></td>' +
+            '<td><input type="text" name="welding_data_line_' + idx + '_process"></td>' +
+            '<td><input type="text" name="welding_data_line_' + idx + '_filler_metal"></td>' +
+            '<td><input class="mm-field" type="text" name="welding_data_line_' + idx + '_diameter_mm"><div class="imp-span"></div></td>' +
+            '<td><input type="text" name="welding_data_line_' + idx + '_amp_range"></td>' +
+            '<td><input type="text" name="welding_data_line_' + idx + '_volt_range"></td>' +
+            '<td><input type="text" name="welding_data_line_' + idx + '_travel_speed"></td>' +
+            '<td><input type="text" name="welding_data_line_' + idx + '_max_heat_input"></td>' +
+            '<td><input type="text" name="welding_data_line_' + idx + '_shielding_gas"></td>' +
+            '<td><button type="button" class="row-btn remove-welding-row">-</button></td>';
+          tbody.appendChild(tr);
+          wireWeldingRemoveButtons();
+          applyImperialHints();
+          tr.querySelectorAll(".mm-field").forEach(function(input) {
+            input.addEventListener("input", applyImperialHints);
+          });
+        });
+      }
+
+      var addSequenceBoxBtn = document.getElementById("add-sequence-box");
+      if (addSequenceBoxBtn) {
+        addSequenceBoxBtn.addEventListener("click", addSequenceBox);
+      }
+
+      if (pqrSelect) pqrSelect.addEventListener("change", applyHoldState);
+      if (projectSelect) projectSelect.addEventListener("change", applyReferenceFromProject);
+      if (imperialToggle) imperialToggle.addEventListener("change", applyImperialHints);
+      document.querySelectorAll(".mm-field").forEach(function(input) {
+        input.addEventListener("input", applyImperialHints);
+      });
+
+      wireRemoveButtons();
+      wireWeldingRemoveButtons();
+      wireSequenceButtons();
+
+      applyHoldState();
+      applyReferenceFromProject();
+      applyImperialHints();
+    })();
+  </script>
 {% endblock %}
+
+

@@ -1,12 +1,16 @@
 import os
 import re
 import uuid
+from urllib.parse import quote
 
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+
+from apps.projects import models as project_models
 
 from . import models
 from .forms import (
@@ -16,22 +20,42 @@ from .forms import (
     WeldConsumableForm,
     WeldForm,
     WeldMapForm,
+    WeldMapUploadForm,
     WeldMarkForm,
     WeldMaterialForm,
 )
 
 
-DEFAULT_WELD_PREFIX = "W-"
-DEFAULT_WELD_PAD = 4
+DEFAULT_WELD_PREFIX = "S"
+DEFAULT_WELD_PAD = 0
+WELD_LIST_FIELDS = [
+    ("joint_description", "Joint description"),
+    ("weld_type", "Weld type"),
+    ("p_no_grade", "P No - Gr"),
+    ("wps_no", "W.P.S No"),
+    ("pqr_no", "P.Q.R No"),
+    ("position", "Position"),
+    ("processes", "Process(es)"),
+    ("base_material", "Base material"),
+]
 
 
-def _next_weld_number(project, used_numbers):
+def _drawing_rel_path(filename):
+    return f"drawings/{filename}"
+
+
+def _drawing_file_url(file_path):
+    normalized = (file_path or "").replace("\\", "/")
+    return quote(normalized, safe="/")
+
+
+def _next_weld_number(project, used_numbers, prefix=DEFAULT_WELD_PREFIX, pad=DEFAULT_WELD_PAD):
     existing = models.Weld.objects.filter(
-        project=project, number__startswith=DEFAULT_WELD_PREFIX
+        project=project, number__startswith=prefix
     ).values_list("number", flat=True)
     max_num = 0
     for number in existing:
-        match = re.match(rf"^{re.escape(DEFAULT_WELD_PREFIX)}(\d+)$", number)
+        match = re.match(rf"^{re.escape(prefix)}(\d+)$", number)
         if match:
             max_num = max(max_num, int(match.group(1)))
     used = set(used_numbers)
@@ -40,13 +64,38 @@ def _next_weld_number(project, used_numbers):
     def generate():
         nonlocal counter
         while True:
-            candidate = f"{DEFAULT_WELD_PREFIX}{counter:0{DEFAULT_WELD_PAD}d}"
+            if pad:
+                candidate = f"{prefix}{counter:0{pad}d}"
+            else:
+                candidate = f"{prefix}{counter}"
             counter += 1
             if candidate not in used:
                 used.add(candidate)
                 return candidate
 
     return generate
+
+
+def _weld_attribute_map(weld):
+    rows = models.WeldAttribute.objects.filter(weld=weld).values_list("name", "value")
+    return {name: value for name, value in rows}
+
+
+def _save_weld_list_row(weld, payload):
+    current = models.WeldAttribute.objects.filter(weld=weld)
+    by_name = {attr.name: attr for attr in current}
+    for field, _label in WELD_LIST_FIELDS:
+        value = (payload.get(field) or "").strip()
+        existing = by_name.get(field)
+        if value:
+            if existing:
+                if existing.value != value:
+                    existing.value = value
+                    existing.save(update_fields=["value"])
+            else:
+                models.WeldAttribute.objects.create(weld=weld, name=field, value=value)
+        elif existing:
+            existing.delete()
 
 
 def _inspection_status(item):
@@ -91,6 +140,7 @@ def _suggest_next_revision(revision):
 def weld_list(request):
     q = request.GET.get("q")
     project_id = request.GET.get("project_id")
+    equipment_id = request.GET.get("equipment_id")
     status_filter = request.GET.get("status")
     drawing_id = request.GET.get("drawing_id")
     inspection_status = request.GET.get("inspection_status")
@@ -133,6 +183,8 @@ def weld_list(request):
         items = items.filter(number__icontains=q)
     if project_id:
         items = items.filter(project_id=project_id)
+    if equipment_id:
+        items = items.filter(drawing__equipment_id=equipment_id)
     if status_filter:
         items = items.filter(status=status_filter)
     if drawing_id:
@@ -212,10 +264,12 @@ def drawing_detail(request, pk):
         project=item.project,
         code=item.code,
     ).order_by("-id")
+    weld_map = models.WeldMap.objects.filter(project=item.project, drawing=item).first()
+    drawing_file_url = _drawing_file_url(item.file_path)
     return render(
         request,
         "drawings/detail.html",
-        {"item": item, "revisions": revisions},
+        {"item": item, "revisions": revisions, "weld_map": weld_map, "drawing_file_url": drawing_file_url},
     )
 
 
@@ -228,7 +282,7 @@ def drawing_create(request):
             upload = form.cleaned_data.get("upload")
             if upload:
                 filename = f"{uuid.uuid4().hex}_{upload.name}"
-                rel_path = os.path.join("drawings", filename)
+                rel_path = _drawing_rel_path(filename)
                 abs_path = os.path.join(settings.MEDIA_ROOT, rel_path)
                 os.makedirs(os.path.dirname(abs_path), exist_ok=True)
                 with open(abs_path, "wb") as handle:
@@ -254,7 +308,7 @@ def drawing_edit(request, pk):
             upload = form.cleaned_data.get("upload")
             if upload:
                 filename = f"{uuid.uuid4().hex}_{upload.name}"
-                rel_path = os.path.join("drawings", filename)
+                rel_path = _drawing_rel_path(filename)
                 abs_path = os.path.join(settings.MEDIA_ROOT, rel_path)
                 os.makedirs(os.path.dirname(abs_path), exist_ok=True)
                 with open(abs_path, "wb") as handle:
@@ -292,7 +346,7 @@ def drawing_new_revision(request, pk):
             upload = form.cleaned_data.get("upload")
             if upload:
                 filename = f"{uuid.uuid4().hex}_{upload.name}"
-                rel_path = os.path.join("drawings", filename)
+                rel_path = _drawing_rel_path(filename)
                 abs_path = os.path.join(settings.MEDIA_ROOT, rel_path)
                 os.makedirs(os.path.dirname(abs_path), exist_ok=True)
                 with open(abs_path, "wb") as handle:
@@ -403,6 +457,43 @@ def weld_map_list(request):
     project_id = request.GET.get("project_id")
     drawing_id = request.GET.get("drawing_id")
     equipment_id = request.GET.get("equipment_id")
+    quick_form = WeldMapUploadForm()
+    if request.method == "POST" and request.POST.get("action") == "create_from_pdf":
+        quick_form = WeldMapUploadForm(request.POST, request.FILES)
+        if quick_form.is_valid():
+            project = quick_form.cleaned_data["project"]
+            equipment = quick_form.cleaned_data["equipment"]
+            drawing_code = quick_form.cleaned_data["drawing_code"].strip()
+            revision = quick_form.cleaned_data["revision"].strip()
+            upload = quick_form.cleaned_data["upload"]
+            filename = f"{uuid.uuid4().hex}_{upload.name}"
+            rel_path = _drawing_rel_path(filename)
+            abs_path = os.path.join(settings.MEDIA_ROOT, rel_path)
+            os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+            with open(abs_path, "wb") as handle:
+                for chunk in upload.chunks():
+                    handle.write(chunk)
+            drawing, created = models.Drawing.objects.get_or_create(
+                project=project,
+                code=drawing_code,
+                revision=revision,
+                defaults={
+                    "equipment": equipment,
+                    "file_path": rel_path,
+                    "status": "active",
+                },
+            )
+            if not created:
+                drawing.equipment = equipment
+                drawing.file_path = rel_path
+                drawing.status = "active"
+                drawing.save(update_fields=["equipment", "file_path", "status"])
+            weld_map, _created = models.WeldMap.objects.get_or_create(
+                project=project,
+                drawing=drawing,
+                defaults={"status": "active"},
+            )
+            return redirect("weld_map_detail", pk=weld_map.pk)
     items = models.WeldMap.objects.select_related(
         "project", "drawing", "drawing__equipment"
     ).all().order_by("drawing__code")
@@ -414,15 +505,174 @@ def weld_map_list(request):
         items = items.filter(drawing_id=drawing_id)
     if equipment_id:
         items = items.filter(drawing__equipment_id=equipment_id)
-    return render(request, "weld_maps/list.html", {"items": items})
+    items = list(items)
+
+    projects = project_models.Project.objects.all().order_by("name")
+    if project_id:
+        projects = projects.filter(id=project_id)
+    project_ids = [project.id for project in projects]
+    equipment_rows = project_models.ProjectEquipment.objects.filter(
+        project_id__in=project_ids
+    ).order_by("project__name", "name")
+
+    maps_by_equipment = {}
+    maps_without_equipment = {}
+    for item in items:
+        equipment_key = str(item.drawing.equipment_id) if item.drawing.equipment_id else None
+        if equipment_key:
+            maps_by_equipment.setdefault(equipment_key, []).append(item)
+        else:
+            maps_without_equipment.setdefault(str(item.project_id), []).append(item)
+
+    equipment_by_project = {}
+    for equipment in equipment_rows:
+        equipment_by_project.setdefault(str(equipment.project_id), []).append(
+            {
+                "equipment": equipment,
+                "maps": maps_by_equipment.get(str(equipment.id), []),
+            }
+        )
+
+    grouped_items = []
+    for project in projects:
+        grouped_items.append(
+            {
+                "project": project,
+                "equipment_rows": equipment_by_project.get(str(project.id), []),
+                "maps_without_equipment": maps_without_equipment.get(str(project.id), []),
+            }
+        )
+
+    return render(
+        request,
+        "weld_maps/list.html",
+        {"items": items, "grouped_items": grouped_items, "quick_form": quick_form},
+    )
 
 
 @login_required
 def weld_map_detail(request, pk):
     item = get_object_or_404(models.WeldMap, pk=pk)
+    drawing_file_url = _drawing_file_url(item.drawing.file_path)
     marks = models.WeldMark.objects.filter(weld_map=item).select_related("weld").order_by("-created_at")
+    saved_marks_payload = [
+        {"id": str(mark.id), "number": mark.weld.number, "geometry": mark.geometry}
+        for mark in marks
+    ]
+    mark_by_weld = {mark.weld_id: mark for mark in marks}
+    map_welds = (
+        models.Weld.objects.filter(weldmark__weld_map=item)
+        .select_related("drawing")
+        .distinct()
+        .order_by("number")
+    )
+    rows = []
+    for weld in map_welds:
+        attrs = _weld_attribute_map(weld)
+        values = []
+        for field, _label in WELD_LIST_FIELDS:
+            values.append((field, attrs.get(field, "")))
+        saved_mark = mark_by_weld.get(weld.id)
+        row = {"weld": weld, "values": values, "mark_id": str(saved_mark.id) if saved_mark else ""}
+        rows.append(row)
     form = WeldMarkForm()
     if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "save_weld_list":
+            for weld in map_welds:
+                payload = {}
+                for field, _label in WELD_LIST_FIELDS:
+                    payload[field] = request.POST.get(f"{field}_{weld.id}", "")
+                _save_weld_list_row(weld, payload)
+            return redirect("weld_map_detail", pk=item.pk)
+        if action == "delete_saved_mark":
+            mark_id = request.POST.get("mark_id")
+            if mark_id:
+                mark = models.WeldMark.objects.filter(
+                    weld_map=item,
+                    id=mark_id,
+                ).first()
+                if mark:
+                    mark.delete()
+            return redirect("weld_map_detail", pk=item.pk)
+        if action == "update_saved_mark_ref":
+            mark_id = request.POST.get("mark_id")
+            weld_number = (request.POST.get("weld_number") or "").strip()
+            if mark_id and weld_number:
+                mark = models.WeldMark.objects.filter(
+                    weld_map=item,
+                    id=mark_id,
+                ).select_related("weld").first()
+                if mark:
+                    duplicate_in_map = models.WeldMark.objects.filter(
+                        weld_map=item,
+                        weld__number=weld_number,
+                    ).exclude(id=mark.id).exists()
+                    if duplicate_in_map:
+                        messages.error(request, f"No se puede repetir la Ref {weld_number} en este welding map.")
+                        form = WeldMarkForm(request.POST)
+                        form.is_valid()
+                        form.add_error(None, f"La referencia {weld_number} ya existe en este welding map.")
+                        return render(
+                            request,
+                            "weld_maps/detail.html",
+                            {
+                                "item": item,
+                                "marks": marks,
+                                "form": form,
+                                "rows": rows,
+                                "weld_list_fields": WELD_LIST_FIELDS,
+                                "drawing_file_url": drawing_file_url,
+                                "saved_marks_payload": saved_marks_payload,
+                            },
+                        )
+                    source_weld = mark.weld
+                    target_weld, created = models.Weld.objects.get_or_create(
+                        project=item.project,
+                        number=weld_number,
+                        defaults={
+                            "drawing": source_weld.drawing or item.drawing,
+                            "status": source_weld.status or "planned",
+                        },
+                    )
+                    if created:
+                        for attr in models.WeldAttribute.objects.filter(weld=source_weld):
+                            models.WeldAttribute.objects.get_or_create(
+                                weld=target_weld,
+                                name=attr.name,
+                                defaults={"value": attr.value},
+                            )
+                        for material in models.WeldMaterial.objects.filter(weld=source_weld):
+                            models.WeldMaterial.objects.get_or_create(
+                                weld=target_weld,
+                                material=material.material,
+                                heat_number=material.heat_number,
+                            )
+                        for consumable in models.WeldConsumable.objects.filter(weld=source_weld):
+                            models.WeldConsumable.objects.get_or_create(
+                                weld=target_weld,
+                                consumable=consumable.consumable,
+                                batch=consumable.batch,
+                            )
+                    if mark.weld_id != target_weld.id:
+                        mark.weld = target_weld
+                        mark.save(update_fields=["weld"])
+            return redirect("weld_map_detail", pk=item.pk)
+        if action == "update_saved_mark":
+            mark_id = request.POST.get("mark_id")
+            mark = models.WeldMark.objects.filter(
+                weld_map=item,
+                id=mark_id,
+            ).first()
+            form = WeldMarkForm(request.POST)
+            if mark and form.is_valid():
+                geometry = form.cleaned_data.get("geometry_json")
+                if geometry:
+                    mark.geometry = geometry
+                    mark.save(update_fields=["geometry"])
+                    return redirect("weld_map_detail", pk=item.pk)
+                form.add_error(None, "Debe dibujar la nueva posicion de la marca.")
+
         form = WeldMarkForm(request.POST)
         if form.is_valid():
             attributes = form.cleaned_data["attributes_json"]
@@ -440,17 +690,55 @@ def weld_map_detail(request, pk):
                 for mark in marks_payload
                 if isinstance(mark, dict) and mark.get("number")
             }
-            next_number = _next_weld_number(item.project, existing_numbers | used_numbers)
-            created = 0
+            number_prefix = (request.POST.get("number_prefix") or DEFAULT_WELD_PREFIX).strip().upper()
+            if not number_prefix:
+                number_prefix = DEFAULT_WELD_PREFIX
+            next_number = _next_weld_number(
+                item.project,
+                existing_numbers | used_numbers,
+                prefix=number_prefix,
+                pad=DEFAULT_WELD_PAD,
+            )
+            existing_map_numbers = set(
+                models.WeldMark.objects.filter(weld_map=item).values_list("weld__number", flat=True)
+            )
+            planned_numbers = set()
+            duplicates = []
+            normalized_marks = []
             for mark in marks_payload:
                 if not isinstance(mark, dict):
                     continue
-                weld_number = mark.get("number")
                 geometry = mark.get("geometry")
                 if not geometry:
                     continue
+                weld_number = mark.get("number")
                 if not weld_number:
                     weld_number = next_number()
+                if weld_number in existing_map_numbers or weld_number in planned_numbers:
+                    duplicates.append(weld_number)
+                planned_numbers.add(weld_number)
+                normalized_marks.append({"number": weld_number, "geometry": geometry})
+            if duplicates:
+                dup_text = ", ".join(sorted(set(duplicates)))
+                messages.error(request, f"No se pueden repetir Refs en este welding map: {dup_text}.")
+                form.add_error(None, f"No se permiten referencias duplicadas en el map: {dup_text}.")
+                return render(
+                    request,
+                    "weld_maps/detail.html",
+                    {
+                        "item": item,
+                        "marks": marks,
+                        "form": form,
+                        "rows": rows,
+                        "weld_list_fields": WELD_LIST_FIELDS,
+                        "drawing_file_url": drawing_file_url,
+                        "saved_marks_payload": saved_marks_payload,
+                    },
+                )
+            created = 0
+            for mark in normalized_marks:
+                weld_number = mark["number"]
+                geometry = mark["geometry"]
                 weld, _ = models.Weld.objects.get_or_create(
                     project=item.project,
                     number=weld_number,
@@ -468,13 +756,29 @@ def weld_map_detail(request, pk):
                 return render(
                     request,
                     "weld_maps/detail.html",
-                    {"item": item, "marks": marks, "form": form},
+                    {
+                        "item": item,
+                        "marks": marks,
+                        "form": form,
+                        "rows": rows,
+                        "weld_list_fields": WELD_LIST_FIELDS,
+                        "drawing_file_url": drawing_file_url,
+                        "saved_marks_payload": saved_marks_payload,
+                    },
                 )
             return redirect("weld_map_detail", pk=item.pk)
     return render(
         request,
         "weld_maps/detail.html",
-        {"item": item, "marks": marks, "form": form},
+        {
+            "item": item,
+            "marks": marks,
+            "form": form,
+            "rows": rows,
+            "weld_list_fields": WELD_LIST_FIELDS,
+            "drawing_file_url": drawing_file_url,
+            "saved_marks_payload": saved_marks_payload,
+        },
     )
 
 
@@ -483,10 +787,21 @@ def weld_map_create(request):
     if request.method == "POST":
         form = WeldMapForm(request.POST)
         if form.is_valid():
-            item = form.save()
+            item, _created = models.WeldMap.objects.get_or_create(
+                project=form.cleaned_data["project"],
+                drawing=form.cleaned_data["drawing"],
+                defaults={"status": form.cleaned_data["status"]},
+            )
             return redirect("weld_map_detail", pk=item.pk)
     else:
-        form = WeldMapForm()
+        initial = {}
+        project_id = request.GET.get("project_id")
+        drawing_id = request.GET.get("drawing_id")
+        if project_id:
+            initial["project"] = project_id
+        if drawing_id:
+            initial["drawing"] = drawing_id
+        form = WeldMapForm(initial=initial)
     return render(request, "weld_maps/form.html", {"form": form, "title": "New welding map"})
 
 

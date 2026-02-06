@@ -1,28 +1,89 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
+  {% if messages %}
+    <div style="margin: 8px 0;">
+      {% for message in messages %}
+        <div style="padding: 8px 10px; border: 1px solid #f5c2c7; background: #fde2e4; color: #842029; margin-bottom: 6px;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <style>
+    .saved-marks-table {
+      width: 100%;
+      max-width: 760px;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .saved-marks-table th,
+    .saved-marks-table td {
+      border: 1px solid #ccc;
+      padding: 4px 6px;
+      vertical-align: middle;
+    }
+    .saved-marks-ref-col {
+      width: auto;
+      text-align: left;
+    }
+    .saved-marks-action-col {
+      width: 130px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .icon-btn {
+      padding: 1px 4px;
+      font-size: 12px;
+      line-height: 1;
+      min-width: 24px;
+      height: 24px;
+      cursor: pointer;
+      margin-right: 2px;
+    }
+    .ref-edit-input {
+      width: 90px;
+      font-size: 12px;
+      padding: 1px 4px;
+    }
+    @media print {
+      form,
+      #pending-table,
+      #geometry-preview,
+      .hide-print {
+        display: none !important;
+      }
+    }
+  </style>
   <h1>Welding Map {{ item.drawing.code }}</h1>
   <p>Project: {{ item.project }}</p>
+  <p>
+    Equipment:
+    {% if item.drawing.equipment %}
+      {{ item.drawing.equipment.name }}
+    {% else %}
+      -
+    {% endif %}
+  </p>
   <p>Drawing: {{ item.drawing }}</p>
   <p>Status: {{ item.status }}</p>
   {% if item.drawing.file_path %}
     <p>
-      File: <a href="/media/{{ item.drawing.file_path }}">{{ item.drawing.file_path }}</a>
+      File: <a href="/media/{{ drawing_file_url }}">{{ item.drawing.file_path }}</a>
     </p>
   {% endif %}
 
-  <h2>Marks</h2>
-  <ul>
-    {% for mark in marks %}
-      <li>{{ mark.weld.number }} - {{ mark.created_at }} - {{ mark.geometry }}</li>
-    {% empty %}
-      <li>No marks.</li>
-    {% endfor %}
-  </ul>
+  <h2>Marking</h2>
+  <p class="muted">Numbering default: S1, S2, S3...</p>
+  <p class="muted">Draw a circle and click Add mark. The marker is rendered as circle + arrow + weld number bubble.</p>
+  <p class="hide-print"><button type="button" id="print-map">Print map with marks</button></p>
 
-  <h2>Add marks</h2>
+  <h3>Add marks</h3>
   <form method="post">
     {% csrf_token %}
+    <input id="id_action" type="hidden" name="action" value="save_marks">
+    <input id="id_mark_id" type="hidden" name="mark_id" value="">
     {% if form.non_field_errors %}
       <ul>
         {% for err in form.non_field_errors %}
@@ -34,34 +95,52 @@
     <p>
       <label for="id_weld_number">Weld number (optional)</label>
       {{ form.weld_number }}
+      <label for="id_number_prefix">Auto prefix</label>
+      <input id="id_number_prefix" type="text" name="number_prefix" value="S" style="width: 48px;">
       <button type="button" id="add-mark">Add mark</button>
+      <button type="button" id="update-saved-mark" style="display: none;">Update selected mark</button>
+      <button type="button" id="cancel-saved-edit" style="display: none;">Cancel edit</button>
     </p>
+    <p id="saved-edit-state" class="muted"></p>
 
     {% if item.drawing.file_path %}
-      <div style="position: relative; display: inline-block; border: 1px solid #ccc;">
-        <img id="drawing-image" src="/media/{{ item.drawing.file_path }}" alt="Drawing" style="display: block; max-width: 100%; height: auto;">
-        <canvas id="mark-canvas" style="position: absolute; left: 0; top: 0;"></canvas>
+      <div style="display: inline-block; width: 100%; max-width: 1100px; border: 1px solid #ccc;">
+        {% with lower_path=item.drawing.file_path|lower %}
+          {% if ".pdf" in lower_path %}
+            <div style="padding: 8px; border-bottom: 1px solid #ccc; background: #f8fafc;">
+              <button type="button" id="pdf-prev">Prev page</button>
+              <span id="pdf-page-label" style="margin: 0 8px;">Page 1</span>
+              <button type="button" id="pdf-next">Next page</button>
+              <span id="pdf-status" style="margin-left: 12px; color: #6b7280;"></span>
+            </div>
+            <div id="pdf-surface" style="position: relative; width: 100%; min-height: 640px;">
+              <iframe
+                id="pdf-fallback"
+                src="/media/{{ drawing_file_url }}#view=FitH"
+                title="PDF preview"
+                style="display: none; width: 100%; height: 640px; border: 0;"
+              ></iframe>
+              <canvas id="drawing-target" data-file-type="pdf" data-file-url="/media/{{ drawing_file_url }}" style="display: block; width: 100%; height: auto;"></canvas>
+              <canvas id="mark-canvas" style="position: absolute; left: 0; top: 0;"></canvas>
+            </div>
+          {% else %}
+            <div style="position: relative;">
+              <img id="drawing-target" data-file-type="image" src="/media/{{ drawing_file_url }}" alt="Drawing" style="display: block; max-width: 100%; height: auto;">
+              <canvas id="mark-canvas" style="position: absolute; left: 0; top: 0;"></canvas>
+            </div>
+          {% endif %}
+        {% endwith %}
       </div>
       <p>
         <button type="button" id="clear-mark">Clear mark</button>
+        <button type="submit">Save</button>
       </p>
       {{ form.geometry_json.as_hidden }}
       {{ form.marks_json.as_hidden }}
       <p id="geometry-preview" style="font-family: monospace;"></p>
 
-      <h3>Pending marks</h3>
-      <table id="pending-table" style="border-collapse: collapse;">
-        <thead>
-          <tr>
-            <th style="border: 1px solid #ccc; padding: 4px;">Number</th>
-            <th style="border: 1px solid #ccc; padding: 4px;">Center</th>
-            <th style="border: 1px solid #ccc; padding: 4px;">Radius</th>
-            <th style="border: 1px solid #ccc; padding: 4px;">Action</th>
-          </tr>
-        </thead>
-        <tbody id="pending-body">
-          <tr><td colspan="4">No pending marks.</td></tr>
-        </tbody>
+      <table id="pending-table" style="display: none;">
+        <tbody id="pending-body"></tbody>
       </table>
     {% else %}
       <p>
@@ -70,11 +149,75 @@
       </p>
     {% endif %}
 
-    <p>
-      <label for="id_attributes_json">Attributes JSON (list)</label>
-      {{ form.attributes_json }}
-    </p>
-    <button type="submit">Save</button>
+    {{ form.attributes_json.as_hidden }}
+  </form>
+
+  <h2>Welding List</h2>
+  <p class="muted">Single table with marks + weld metadata. You can show/hide columns.</p>
+  <div style="margin: 8px 0;" id="column-controls">
+    {% for field_name, field_label in weld_list_fields %}
+      <label style="margin-right: 10px;">
+        <input type="checkbox" class="toggle-col" data-col-key="{{ field_name }}" checked>
+        {{ field_label }}
+      </label>
+    {% endfor %}
+    <label style="margin-right: 10px;">
+      <input type="checkbox" class="toggle-col" data-col-key="status" checked>
+      Status
+    </label>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" id="id_welding_action" value="save_weld_list">
+    <input type="hidden" name="mark_id" id="id_welding_mark_id" value="">
+    <input type="hidden" name="weld_number" id="id_welding_ref_value" value="">
+    <table style="border-collapse: collapse; width: 100%;">
+      <thead>
+        <tr>
+          <th style="border: 1px solid #ccc; padding: 4px;">Ref</th>
+          <th style="border: 1px solid #ccc; padding: 4px;">Action</th>
+          {% for field_name, field_label in weld_list_fields %}
+            <th style="border: 1px solid #ccc; padding: 4px;" data-col="{{ field_name }}">{{ field_label }}</th>
+          {% endfor %}
+          <th style="border: 1px solid #ccc; padding: 4px;" data-col="status">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr data-mark-row="{{ row.mark_id }}">
+            <td style="border: 1px solid #ccc; padding: 4px;">
+              <a href="/ui/welds/{{ row.weld.id }}/" class="ref-text" data-original-ref="{{ row.weld.number }}">{{ row.weld.number }}</a>
+              <span class="ref-edit-form" style="display: none;">
+                <input class="ref-edit-input" type="text" value="{{ row.weld.number }}">
+                <button class="icon-btn save-ref-inline" type="button" title="Save ref">&#10003;</button>
+                <button class="icon-btn cancel-ref-edit" type="button" title="Cancel">&#10005;</button>
+              </span>
+            </td>
+            <td style="border: 1px solid #ccc; padding: 4px; white-space: nowrap;">
+              <button type="button" class="icon-btn start-ref-edit" data-mark-id="{{ row.mark_id }}" title="Edit ref" {% if not row.mark_id %}disabled{% endif %}>&#9998;</button>
+              <button type="button" class="icon-btn edit-saved-mark" data-mark-id="{{ row.mark_id }}" title="Edit position" {% if not row.mark_id %}disabled{% endif %}>&#8645;</button>
+              <button type="button" class="icon-btn delete-saved-mark" data-mark-id="{{ row.mark_id }}" title="Delete" {% if not row.mark_id %}disabled{% endif %}>&#128465;</button>
+            </td>
+            {% for field_name, field_value in row.values %}
+              <td style="border: 1px solid #ccc; padding: 4px;" data-col="{{ field_name }}">
+                <input
+                  type="text"
+                  name="{{ field_name }}_{{ row.weld.id }}"
+                  value="{{ field_value }}"
+                  style="width: 180px;"
+                >
+              </td>
+            {% endfor %}
+            <td style="border: 1px solid #ccc; padding: 4px;" data-col="status">{{ row.weld.status }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td style="border: 1px solid #ccc; padding: 4px;" colspan="20">No welds yet. Add marks first.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p><button type="submit">Save welding list</button></p>
   </form>
 
   <p>
@@ -82,51 +225,247 @@
     <a href="/ui/welds/weld-maps/">Back</a>
   </p>
 
+  {{ saved_marks_payload|json_script:"saved-marks-data" }}
+
   {% if item.drawing.file_path %}
+  <script src="{% static 'vendor/pdfjs/pdf.min.js' %}"></script>
   <script>
     (function() {
-      var img = document.getElementById("drawing-image");
+      var target = document.getElementById("drawing-target");
       var canvas = document.getElementById("mark-canvas");
+      var pdfPrevBtn = document.getElementById("pdf-prev");
+      var pdfNextBtn = document.getElementById("pdf-next");
+      var pdfPageLabel = document.getElementById("pdf-page-label");
+      var pdfStatus = document.getElementById("pdf-status");
+      var pdfFallback = document.getElementById("pdf-fallback");
+      var pdfSurface = document.getElementById("pdf-surface");
       var input = document.getElementById("id_geometry_json");
       var marksInput = document.getElementById("id_marks_json");
+      var actionInput = document.getElementById("id_action");
+      var markIdInput = document.getElementById("id_mark_id");
       var preview = document.getElementById("geometry-preview");
       var clearBtn = document.getElementById("clear-mark");
       var addBtn = document.getElementById("add-mark");
+      var updateSavedBtn = document.getElementById("update-saved-mark");
+      var cancelSavedEditBtn = document.getElementById("cancel-saved-edit");
+      var savedEditState = document.getElementById("saved-edit-state");
       var numberInput = document.getElementById("id_weld_number");
+      var prefixInput = document.getElementById("id_number_prefix");
       var pendingBody = document.getElementById("pending-body");
+      var printBtn = document.getElementById("print-map");
+      var weldingActionInput = document.getElementById("id_welding_action");
+      var weldingMarkIdInput = document.getElementById("id_welding_mark_id");
+      var weldingRefValueInput = document.getElementById("id_welding_ref_value");
+      var weldingForm = weldingActionInput ? weldingActionInput.form : null;
       var ctx = canvas.getContext("2d");
       var isDrawing = false;
       var startX = 0;
       var startY = 0;
       var circle = null;
       var marks = [];
+      var fileType = target ? (target.getAttribute("data-file-type") || "image") : "image";
+      var pdfDoc = null;
+      var pdfPageNumber = 1;
+      var pdfScale = 1.4;
+      var targetCtx = target && target.tagName === "CANVAS" ? target.getContext("2d") : null;
+      var usingFallbackPdf = false;
+      var reservedNumbers = {};
+      var savedMarks = [];
+      var editingSavedMarkId = null;
+      var dragEditMark = false;
+      var dragOffsetX = 0;
+      var dragOffsetY = 0;
+
+      try {
+        var savedRaw = document.getElementById("saved-marks-data");
+        if (savedRaw && savedRaw.textContent) {
+          savedMarks = JSON.parse(savedRaw.textContent);
+        }
+      } catch (err) {
+        savedMarks = [];
+      }
+
+      function registerReservedNumber(number) {
+        if (!number) return;
+        reservedNumbers[String(number).trim().toUpperCase()] = true;
+      }
+
+      function getSavedMarkById(markId) {
+        if (!markId) return null;
+        for (var i = 0; i < savedMarks.length; i += 1) {
+          if (String(savedMarks[i].id) === String(markId)) {
+            return savedMarks[i];
+          }
+        }
+        return null;
+      }
+
+      function setSavedEditMode(markId) {
+        var mark = getSavedMarkById(markId);
+        if (!mark || !mark.geometry) return;
+        editingSavedMarkId = String(markId);
+        if (markIdInput) {
+          markIdInput.value = editingSavedMarkId;
+        }
+        if (actionInput) {
+          actionInput.value = "update_saved_mark";
+        }
+        if (updateSavedBtn) {
+          updateSavedBtn.style.display = "";
+        }
+        if (cancelSavedEditBtn) {
+          cancelSavedEditBtn.style.display = "";
+        }
+        if (savedEditState) {
+          savedEditState.textContent = "Editing saved mark: " + (mark.number || editingSavedMarkId);
+        }
+        circle = {
+          type: "circle",
+          cx: Number(mark.geometry.cx || 0),
+          cy: Number(mark.geometry.cy || 0),
+          r: Number(mark.geometry.r || 0),
+        };
+        input.value = JSON.stringify(circle);
+        preview.textContent = input.value;
+        redraw();
+      }
+
+      function clearSavedEditMode() {
+        editingSavedMarkId = null;
+        dragEditMark = false;
+        if (markIdInput) {
+          markIdInput.value = "";
+        }
+        if (actionInput) {
+          actionInput.value = "save_marks";
+        }
+        if (updateSavedBtn) {
+          updateSavedBtn.style.display = "none";
+        }
+        if (cancelSavedEditBtn) {
+          cancelSavedEditBtn.style.display = "none";
+        }
+        if (savedEditState) {
+          savedEditState.textContent = "";
+        }
+      }
+
+      function isReservedNumber(number) {
+        if (!number) return false;
+        return !!reservedNumbers[String(number).trim().toUpperCase()];
+      }
+
+      function scanSavedNumbers() {
+        savedMarks.forEach(function(mark) {
+          registerReservedNumber(mark.number);
+        });
+      }
+
+      function nextAutoNumber() {
+        var prefix = prefixInput && prefixInput.value ? prefixInput.value.trim().toUpperCase() : "S";
+        if (!prefix) {
+          prefix = "S";
+        }
+        var n = 1;
+        while (true) {
+          var candidate = prefix + n;
+          if (!isReservedNumber(candidate)) {
+            return candidate;
+          }
+          n += 1;
+        }
+      }
+
+      function activeSurfaceElement() {
+        if (usingFallbackPdf && pdfFallback) {
+          return pdfFallback;
+        }
+        return target;
+      }
 
       function syncCanvasSize() {
-        canvas.width = img.clientWidth;
-        canvas.height = img.clientHeight;
+        var surface = activeSurfaceElement();
+        if (!surface) return;
+        var w = surface.clientWidth || (pdfSurface ? pdfSurface.clientWidth : 0) || 1;
+        var h = surface.clientHeight || (pdfSurface ? pdfSurface.clientHeight : 0) || 1;
+        canvas.width = w;
+        canvas.height = h;
         redraw();
       }
 
       function redraw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#d00";
-        ctx.lineWidth = 2;
+        savedMarks.forEach(function(mark) {
+          drawWeldMarker(mark, "#0f172a");
+        });
+        marks.forEach(function(mark) {
+          drawWeldMarker(mark, "#b91c1c");
+        });
         if (circle) {
+          ctx.strokeStyle = "#d00";
+          ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(circle.cx, circle.cy, circle.r, 0, Math.PI * 2);
           ctx.stroke();
         }
-        marks.forEach(function(mark) {
-          ctx.beginPath();
-          ctx.arc(mark.geometry.cx, mark.geometry.cy, mark.geometry.r, 0, Math.PI * 2);
-          ctx.stroke();
-        });
+      }
+
+      function drawWeldMarker(mark, color) {
+        if (!mark || !mark.geometry) return;
+        var g = mark.geometry;
+        var cx = Number(g.cx || 0);
+        var cy = Number(g.cy || 0);
+        var r = Math.max(8, Number(g.r || 0));
+        var label = (mark.number || "").trim();
+        var bubbleR = 14;
+        var bubbleCx = cx + r + 26;
+        var bubbleCy = cy - r - 18;
+        var startX = bubbleCx - bubbleR;
+        var startY = bubbleCy + bubbleR;
+        var endX = cx;
+        var endY = cy;
+        var angle = Math.atan2(endY - startY, endX - startX);
+        var head = 8;
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - head * Math.cos(angle - Math.PI / 6), endY - head * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(endX - head * Math.cos(angle + Math.PI / 6), endY - head * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(bubbleCx, bubbleCy, bubbleR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.stroke();
+
+        if (label) {
+          ctx.fillStyle = color;
+          ctx.font = "bold 11px sans-serif";
+          var textW = ctx.measureText(label).width;
+          ctx.fillText(label, bubbleCx - textW / 2, bubbleCy + 4);
+        }
       }
 
       function renderPending() {
         if (!pendingBody) return;
         if (!marks.length) {
-          pendingBody.innerHTML = '<tr><td colspan="4">No pending marks.</td></tr>';
+          pendingBody.innerHTML = '<tr><td colspan="3">No marks added yet.</td></tr>';
           return;
         }
         pendingBody.innerHTML = marks.map(function(mark, idx) {
@@ -134,8 +473,7 @@
           var label = mark.number || "auto";
           return '<tr>' +
             '<td style="border: 1px solid #ccc; padding: 4px;">' + label + '</td>' +
-            '<td style="border: 1px solid #ccc; padding: 4px;">(' + c.cx + ', ' + c.cy + ')</td>' +
-            '<td style="border: 1px solid #ccc; padding: 4px;">' + c.r + '</td>' +
+            '<td style="border: 1px solid #ccc; padding: 4px;">Center (' + c.cx + ', ' + c.cy + '), R=' + c.r + '</td>' +
             '<td style="border: 1px solid #ccc; padding: 4px;">' +
               '<button type="button" class="edit-mark" data-index="' + idx + '">Edit</button> ' +
               '<button type="button" class="remove-mark" data-index="' + idx + '">Remove</button>' +
@@ -156,21 +494,105 @@
         redraw();
       }
 
-      img.addEventListener("load", syncCanvasSize);
+      function renderPdfPage() {
+        if (!pdfDoc || !targetCtx) return;
+        pdfDoc.getPage(pdfPageNumber).then(function(page) {
+          var viewport = page.getViewport({ scale: pdfScale });
+          target.width = viewport.width;
+          target.height = viewport.height;
+          var renderCtx = {
+            canvasContext: targetCtx,
+            viewport: viewport
+          };
+          return page.render(renderCtx).promise;
+        }).then(function() {
+          if (pdfPageLabel) {
+            pdfPageLabel.textContent = "Page " + pdfPageNumber + " / " + pdfDoc.numPages;
+          }
+          syncCanvasSize();
+        });
+      }
+
+      function initPdf() {
+        if (fileType !== "pdf") {
+          return;
+        }
+        if (!window.pdfjsLib || !targetCtx) {
+          usingFallbackPdf = true;
+          if (target) target.style.display = "none";
+          if (pdfFallback) pdfFallback.style.display = "block";
+          if (pdfStatus) {
+            pdfStatus.textContent = "PDF.js unavailable. Using embedded PDF preview.";
+          }
+          setTimeout(syncCanvasSize, 100);
+          return;
+        }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'vendor/pdfjs/pdf.worker.min.js' %}";
+        var fileUrl = target.getAttribute("data-file-url");
+        window.pdfjsLib.getDocument(fileUrl).promise.then(function(doc) {
+          pdfDoc = doc;
+          renderPdfPage();
+        }).catch(function(err) {
+          usingFallbackPdf = true;
+          if (target) target.style.display = "none";
+          if (pdfFallback) pdfFallback.style.display = "block";
+          if (pdfStatus) {
+            pdfStatus.textContent = "Error loading PDF in canvas. Using embedded PDF preview.";
+          }
+          preview.textContent = "Error loading PDF: " + (err && err.message ? err.message : err);
+          setTimeout(syncCanvasSize, 100);
+        });
+      }
+
+      if (target && target.tagName === "IMG") {
+        target.addEventListener("load", syncCanvasSize);
+      }
       window.addEventListener("resize", syncCanvasSize);
+
+      if (pdfPrevBtn) {
+        pdfPrevBtn.addEventListener("click", function() {
+          if (!pdfDoc || pdfPageNumber <= 1 || usingFallbackPdf) return;
+          pdfPageNumber -= 1;
+          renderPdfPage();
+        });
+      }
+      if (pdfNextBtn) {
+        pdfNextBtn.addEventListener("click", function() {
+          if (!pdfDoc || pdfPageNumber >= pdfDoc.numPages || usingFallbackPdf) return;
+          pdfPageNumber += 1;
+          renderPdfPage();
+        });
+      }
 
       canvas.addEventListener("mousedown", function(e) {
         var rectCanvas = canvas.getBoundingClientRect();
-        startX = e.clientX - rectCanvas.left;
-        startY = e.clientY - rectCanvas.top;
+        var x = e.clientX - rectCanvas.left;
+        var y = e.clientY - rectCanvas.top;
+        if (editingSavedMarkId && circle) {
+          var dx = x - circle.cx;
+          var dy = y - circle.cy;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= circle.r + 8) {
+            dragEditMark = true;
+            dragOffsetX = x - circle.cx;
+            dragOffsetY = y - circle.cy;
+            return;
+          }
+        }
+        startX = x;
+        startY = y;
         isDrawing = true;
       });
 
       canvas.addEventListener("mousemove", function(e) {
-        if (!isDrawing) return;
         var rectCanvas = canvas.getBoundingClientRect();
         var x = e.clientX - rectCanvas.left;
         var y = e.clientY - rectCanvas.top;
+        if (dragEditMark && editingSavedMarkId && circle) {
+          setCircle(x - dragOffsetX, y - dragOffsetY, circle.r);
+          return;
+        }
+        if (!isDrawing) return;
         var dx = x - startX;
         var dy = y - startY;
         var r = Math.sqrt(dx * dx + dy * dy);
@@ -179,10 +601,12 @@
 
       canvas.addEventListener("mouseup", function() {
         isDrawing = false;
+        dragEditMark = false;
       });
 
       canvas.addEventListener("mouseleave", function() {
         isDrawing = false;
+        dragEditMark = false;
       });
 
       clearBtn.addEventListener("click", function() {
@@ -193,19 +617,149 @@
       });
 
       addBtn.addEventListener("click", function() {
+        if (editingSavedMarkId) {
+          preview.textContent = "Finish saved mark edit with 'Update selected mark' or cancel it.";
+          return;
+        }
         var number = numberInput.value.trim();
         if (!circle) {
           return;
         }
-        marks.push({ number: number || null, geometry: circle });
+        if (!number) {
+          number = nextAutoNumber();
+        }
+        marks.push({ number: number, geometry: circle });
+        registerReservedNumber(number);
         marksInput.value = JSON.stringify(marks);
-        numberInput.value = "";
+        numberInput.value = nextAutoNumber();
         circle = null;
         input.value = "";
         preview.textContent = marksInput.value;
         redraw();
         renderPending();
       });
+
+      if (updateSavedBtn) {
+        updateSavedBtn.addEventListener("click", function() {
+          if (!editingSavedMarkId || !circle) {
+            return;
+          }
+          if (actionInput) {
+            actionInput.value = "update_saved_mark";
+          }
+          if (markIdInput) {
+            markIdInput.value = editingSavedMarkId;
+          }
+          input.form.submit();
+        });
+      }
+
+      if (cancelSavedEditBtn) {
+        cancelSavedEditBtn.addEventListener("click", function() {
+          clearSavedEditMode();
+          circle = null;
+          input.value = "";
+          preview.textContent = "";
+          redraw();
+        });
+      }
+
+      document.querySelectorAll(".edit-saved-mark").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          var markId = btn.getAttribute("data-mark-id");
+          if (!markId) return;
+          setSavedEditMode(markId);
+        });
+      });
+
+      document.querySelectorAll(".start-ref-edit").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          var markId = btn.getAttribute("data-mark-id");
+          if (!markId) return;
+          var row = btn.closest("tr");
+          if (!row) return;
+          var text = row.querySelector(".ref-text");
+          var form = row.querySelector(".ref-edit-form");
+          var input = row.querySelector(".ref-edit-input");
+          if (!text || !form || !input) return;
+          text.style.display = "none";
+          form.style.display = "inline";
+          input.focus();
+          input.select();
+        });
+      });
+
+      document.querySelectorAll(".save-ref-inline").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          if (!weldingForm || !weldingActionInput || !weldingMarkIdInput || !weldingRefValueInput) return;
+          var row = btn.closest("tr");
+          if (!row) return;
+          var markId = row.getAttribute("data-mark-row");
+          var input = row.querySelector(".ref-edit-input");
+          if (!markId || !input) return;
+          weldingActionInput.value = "update_saved_mark_ref";
+          weldingMarkIdInput.value = markId;
+          weldingRefValueInput.value = input.value.trim();
+          weldingForm.submit();
+        });
+      });
+
+      document.querySelectorAll(".cancel-ref-edit").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          var row = btn.closest("tr");
+          if (!row) return;
+          var text = row.querySelector(".ref-text");
+          var form = row.querySelector(".ref-edit-form");
+          var input = row.querySelector(".ref-edit-input");
+          if (text && input) {
+            input.value = text.getAttribute("data-original-ref") || text.textContent || "";
+          }
+          if (form) form.style.display = "none";
+          if (text) text.style.display = "";
+        });
+      });
+
+      document.querySelectorAll(".delete-saved-mark").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          if (!weldingForm || !weldingActionInput || !weldingMarkIdInput) return;
+          var markId = btn.getAttribute("data-mark-id");
+          if (!markId) return;
+          weldingActionInput.value = "delete_saved_mark";
+          weldingMarkIdInput.value = markId;
+          weldingForm.submit();
+        });
+      });
+
+      function applyColumnVisibility(key, visible) {
+        document.querySelectorAll('[data-col="' + key + '"]').forEach(function(cell) {
+          cell.style.display = visible ? "" : "none";
+        });
+      }
+
+      document.querySelectorAll(".toggle-col").forEach(function(cb) {
+        var key = cb.getAttribute("data-col-key");
+        var storageKey = "weld_map_col_" + key;
+        var stored = localStorage.getItem(storageKey);
+        if (stored !== null) {
+          cb.checked = stored === "1";
+        }
+        applyColumnVisibility(key, cb.checked);
+        cb.addEventListener("change", function() {
+          localStorage.setItem(storageKey, cb.checked ? "1" : "0");
+          applyColumnVisibility(key, cb.checked);
+        });
+      });
+
+      if (input && input.form) {
+        input.form.addEventListener("submit", function() {
+          if (editingSavedMarkId && actionInput) {
+            actionInput.value = "update_saved_mark";
+            if (markIdInput) {
+              markIdInput.value = editingSavedMarkId;
+            }
+          }
+        });
+      }
 
       pendingBody.addEventListener("click", function(e) {
         var target = e.target;
@@ -224,8 +778,22 @@
         renderPending();
       });
 
-      if (img.complete) {
+      if (printBtn) {
+        printBtn.addEventListener("click", function() {
+          window.print();
+        });
+      }
+
+      if (fileType === "pdf") {
+        initPdf();
+      } else if (target && target.tagName === "IMG" && target.complete) {
         syncCanvasSize();
+      } else {
+        setTimeout(syncCanvasSize, 100);
+      }
+      scanSavedNumbers();
+      if (numberInput && !numberInput.value.trim()) {
+        numberInput.value = nextAutoNumber();
       }
       renderPending();
     })();

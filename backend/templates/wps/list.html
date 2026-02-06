@@ -1,43 +1,78 @@
 {% extends "base.html" %}
 
 {% block content %}
+  <style>
+    .icon-btn {
+      padding: 2px 6px;
+      min-width: 26px;
+      height: 24px;
+      font-size: 12px;
+      line-height: 1;
+      margin-right: 3px;
+      cursor: pointer;
+    }
+  </style>
   <h1>WPS</h1>
   <form method="get">
     <input type="text" name="q" placeholder="Search code" value="{{ request.GET.q }}">
-    <input type="text" name="project_id" placeholder="Project ID" value="{{ request.GET.project_id }}">
+    <select name="project_id">
+      <option value="">Project</option>
+      {% for project in projects %}
+        <option value="{{ project.id }}" {% if request.GET.project_id == project.id|stringformat:"s" %}selected{% endif %}>
+          {{ project.code }} - {{ project.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <select name="equipment_id">
+      <option value="">Equipment</option>
+      {% for equipment in equipment_items %}
+        <option value="{{ equipment.id }}" {% if request.GET.equipment_id == equipment.id|stringformat:"s" %}selected{% endif %}>
+          {{ equipment.fabrication_code }} - {{ equipment.name }}
+        </option>
+      {% endfor %}
+    </select>
     <button type="submit">Search</button>
   </form>
-  <p><a href="/ui/wps/new/tool/">WPS creation tool</a></p>
+  <p><a href="/ui/wps/new/"><button type="button">New WPS</button></a></p>
   <div style="overflow-x: auto;">
     <table style="width: 100%; border-collapse: collapse;">
       <thead>
         <tr>
           <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">WPS</th>
-          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Proyecto</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Revision</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Project</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Equipment</th>
           <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">P-Numbers</th>
-          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">PQR aplicable</th>
-          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Estado</th>
-          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Acciones</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Applicable PQR</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Status</th>
+          <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding: 8px;">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for item in items %}
           <tr>
             <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;"><a href="/ui/wps/{{ item.id }}/">{{ item.code }}</a></td>
-            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.project.code }} - {{ item.project.name }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.display_revision }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{% if item.project %}{{ item.project.code }} - {{ item.project.name }}{% else %}-{% endif %}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{% if item.equipment %}{{ item.equipment.fabrication_code }} - {{ item.equipment.name }}{% else %}-{% endif %}</td>
             <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.display_p_numbers }}</td>
             <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.display_pqrs }}</td>
-            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.status }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">{{ item.display_status }}</td>
             <td style="border-bottom: 1px solid #f0f2f5; padding: 8px;">
+              <a href="/ui/wps/{{ item.id }}/edit/"><button class="icon-btn" type="button" title="Edit">&#9998;</button></a>
               <form method="post" action="/ui/wps/{{ item.id }}/copy/" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit">Copiar</button>
+                <button class="icon-btn" type="submit" title="Copy">&#128203;</button>
+              </form>
+              <form method="post" action="/ui/wps/{{ item.id }}/delete/" style="display:inline;" onsubmit="return confirm('Delete WPS {{ item.code }}?');">
+                {% csrf_token %}
+                <button class="icon-btn" type="submit" title="Delete">&#128465;</button>
               </form>
             </td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="6" style="padding: 12px;" class="muted">No records.</td>
+            <td colspan="8" style="padding: 12px;" class="muted">No records.</td>
           </tr>
         {% endfor %}
       </tbody>

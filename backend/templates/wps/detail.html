@@ -2,28 +2,70 @@
 
 {% block content %}
   <h1>{{ item.code }}</h1>
+  <p>Revision: R{{ item.revision_number|default:0 }}</p>
   <p>Standard: {{ item.standard }}</p>
-  <p>Status: {{ item.status }}</p>
+  <p>Status: {{ status_label }}</p>
   <p>Impact test: {{ item.impact_test|yesno:"Yes,No" }}</p>
   <p>Project: {{ item.project }}</p>
+  <p>Submitted by: {% if item.submitted_by %}{{ item.submitted_by.name }}{% else %}-{% endif %}</p>
+  <p>Reviewed by: {% if item.reviewed_by %}{{ item.reviewed_by.name }}{% else %}-{% endif %}</p>
+  <p>Approved by: {% if item.approved_by %}{{ item.approved_by.name }}{% else %}-{% endif %}</p>
   <p>
     <a href="/ui/wps/{{ item.id }}/edit/">Edit</a> |
-    <a href="/ui/wps/{{ item.id }}/qw482/">Edit QW-482 Form</a> |
-    <a href="/ui/wps/{{ item.id }}/processes/">Manage processes</a> |
+    <form method="post" action="/ui/wps/{{ item.id }}/submit-approval/" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" {% if not can_submit %}disabled{% endif %}>Submit for approval</button>
+    </form>
+    |
+    <form method="post" action="/ui/wps/{{ item.id }}/mark-reviewed/" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" {% if not can_review %}disabled{% endif %}>Reviewed</button>
+    </form>
+    |
+    <form method="post" action="/ui/wps/{{ item.id }}/approve/" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" {% if not can_approve %}disabled{% endif %}>Approve</button>
+    </form>
+    |
+    <form method="post" action="/ui/wps/{{ item.id }}/new-revision/" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit">New revision</button>
+    </form>
+    |
     <a href="/ui/wps/">Back</a>
   </p>
 
-  <h2>Processes</h2>
-  <ul>
-    {% for process in processes %}
-      <li>
-        {{ process.process_code }}
-        {% if process.special_process %}({{ process.special_process }}){% endif %}
-        - <a href="/ui/wps/processes/{{ process.id }}/variables/">Variables</a>
-        - <a href="/ui/wps/processes/{{ process.id }}/edit/">Edit</a>
-      </li>
-    {% empty %}
-      <li>No processes.</li>
-    {% endfor %}
-  </ul>
+  <h2>Revision history</h2>
+  <table style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th style="text-align:left; border-bottom: 1px solid #e5e7eb; padding: 6px;">Revision</th>
+        <th style="text-align:left; border-bottom: 1px solid #e5e7eb; padding: 6px;">Status</th>
+        <th style="text-align:left; border-bottom: 1px solid #e5e7eb; padding: 6px;">Submitted by</th>
+        <th style="text-align:left; border-bottom: 1px solid #e5e7eb; padding: 6px;">Reviewed by</th>
+        <th style="text-align:left; border-bottom: 1px solid #e5e7eb; padding: 6px;">Approved by</th>
+        <th style="text-align:left; border-bottom: 1px solid #e5e7eb; padding: 6px;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rev in revisions %}
+        <tr>
+          <td style="border-bottom: 1px solid #f0f2f5; padding: 6px;">R{{ rev.revision_number }}</td>
+          <td style="border-bottom: 1px solid #f0f2f5; padding: 6px;">{{ rev.status }}</td>
+          <td style="border-bottom: 1px solid #f0f2f5; padding: 6px;">{% if rev.submitted_by %}{{ rev.submitted_by.name }}{% else %}-{% endif %}</td>
+          <td style="border-bottom: 1px solid #f0f2f5; padding: 6px;">{% if rev.reviewed_by %}{{ rev.reviewed_by.name }}{% else %}-{% endif %}</td>
+          <td style="border-bottom: 1px solid #f0f2f5; padding: 6px;">{% if rev.approved_by %}{{ rev.approved_by.name }}{% else %}-{% endif %}</td>
+          <td style="border-bottom: 1px solid #f0f2f5; padding: 6px;">
+            {% if rev.id == item.id %}
+              Current
+            {% else %}
+              <a href="/ui/wps/{{ rev.id }}/">Open</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" style="padding: 6px;">No revisions.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}

@@ -19,7 +19,7 @@ def nav_sections(request):
         {"label": "WPS", "url": "/ui/wps/", "roles": ["Admin", "Welding", "QA"]},
         {"label": "PQR", "url": "/ui/pqr/", "roles": ["Admin", "Welding", "QA"]},
         {"label": "WPQ / Soldadores", "url": "/ui/wpq/", "roles": ["Admin", "Welding", "QA"]},
-        {"label": "Welds / Maps", "url": "/ui/welds/", "roles": ["Admin", "Welding", "Production"]},
+        {"label": "Welds / Maps", "url": "/ui/welds/maps/", "roles": ["Admin", "Welding", "Production"]},
         {"label": "Calidad (END)", "url": "/ui/quality/nde-requests/", "roles": ["Admin", "QA", "QC"]},
         {"label": "PWHT", "url": "/ui/quality/pwht/", "roles": ["Admin", "QA", "QC"]},
         {"label": "Presion", "url": "/ui/quality/pressure-tests/", "roles": ["Admin", "QA", "QC"]},
