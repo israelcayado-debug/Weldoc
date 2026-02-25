@@ -48,6 +48,16 @@ def _missing_wps_for_publish(document):
     return list(qs.exclude(status=wps_models.Wps.STATUS_APPROVED).order_by("code"))
 
 
+def _copy_title(source_title):
+    for index in range(1, 1000):
+        suffix = " (Copy)" if index == 1 else f" (Copy {index})"
+        trimmed_base = source_title[: max(1, 200 - len(suffix))]
+        candidate = f"{trimmed_base}{suffix}"
+        if not models.Document.objects.filter(title=candidate).exists():
+            return candidate
+    return f"{source_title[:188]} (Copy 999)"
+
+
 @login_required
 def document_list(request):
     q = request.GET.get("q")
@@ -140,6 +150,30 @@ def document_edit(request, pk):
         form = DocumentForm(instance=item)
         form.fields.pop("type", None)
     return render(request, "documents/form.html", {"form": form, "title": "Edit Welding Book"})
+
+
+@login_required
+def document_copy(request, pk):
+    if request.method != "POST":
+        return redirect("document_list")
+
+    source = get_object_or_404(models.Document, pk=pk)
+    copy_item = models.Document.objects.create(
+        project=source.project,
+        equipment=source.equipment,
+        type="Welding Book",
+        title=_copy_title(source.title),
+        status=source.status,
+    )
+    return redirect("document_detail", pk=copy_item.pk)
+
+
+@login_required
+def document_delete(request, pk):
+    if request.method == "POST":
+        item = get_object_or_404(models.Document, pk=pk)
+        item.delete()
+    return redirect("document_list")
 
 
 @login_required

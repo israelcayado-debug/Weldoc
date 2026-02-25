@@ -351,3 +351,82 @@ class PqrUiToolTests(TestCase):
         self.assertEqual(resp.status_code, 400)
         item.refresh_from_db()
         self.assertFalse(bool(item.scanned_pdf))
+
+    def test_edit_updates_pqr_and_results(self):
+        item = models.Pqr.objects.create(
+            project=self.project, code="PQR-EDIT-001", standard="ASME_IX", status="draft"
+        )
+        models.PqrResult.objects.create(pqr=item, test_type="processes", result="SMAW")
+
+        resp = self.client.post(
+            reverse("pqr_edit", kwargs={"pk": item.id}),
+            {
+                "code": "PQR-EDIT-001",
+                "standard": "ASME_IX",
+                "status": "in_review",
+                "processes": "GTAW",
+                "thickness_range": "3 a 12",
+                "material_1": "SA335 P5",
+                "p_group_1": "P5B",
+                "material_2": "SA335 P5",
+                "p_group_2": "P5B",
+                "p_group": "P5B con P5B",
+                "filler_fno_gtaw": "6",
+                "a_no_gtaw": "5",
+                "filler_fno_smaw": "4",
+                "a_no_smaw": "5",
+                "gtaw_filler_form": "CON/SOLIDO",
+                "diameter": "273",
+                "thickness_test_coupon": "25",
+                "t_max_gtaw": "14",
+                "t_max_smaw": "6",
+                "preheat": ">145",
+                "pwht": "750, 2 h",
+                "gas_protection": "ARGON 99,9%",
+                "aws_sfa_gtaw": "ER-80S-B8",
+                "aws_sfa_smaw": "E-8015-B8",
+                "interpass_temp": "406 C Max",
+                "heat_input_gtaw": "32,64 Max",
+                "heat_input_smaw": "33,15 Max",
+                "base_metal_a_no": "A1 con A1",
+                "position": "All",
+                "gas_backing": "CON/SIN",
+                "end_requirements": "TRACCION Y PLEGADO, MACROGRAFIA, DUREZAS",
+                "itm_signature": "ITM-001",
+                "notes": "Actualizado",
+            },
+        )
+        self.assertEqual(resp.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "in_review")
+        self.assertEqual(
+            models.PqrResult.objects.get(pqr=item, test_type="processes").result,
+            "GTAW",
+        )
+
+    def test_copy_creates_new_pqr_with_results(self):
+        item = models.Pqr.objects.create(
+            project=self.project, code="PQR-COPY-001", standard="ASME_IX", status="approved"
+        )
+        models.PqrResult.objects.create(
+            pqr=item,
+            test_type="processes",
+            result="SMAW",
+        )
+
+        resp = self.client.post(reverse("pqr_copy", kwargs={"pk": item.id}))
+        self.assertEqual(resp.status_code, 302)
+        copied = models.Pqr.objects.get(code="PQR-COPY-001-COPY")
+        self.assertEqual(copied.status, "draft")
+        self.assertEqual(
+            models.PqrResult.objects.get(pqr=copied, test_type="processes").result,
+            "SMAW",
+        )
+
+    def test_delete_removes_pqr(self):
+        item = models.Pqr.objects.create(
+            project=self.project, code="PQR-DELETE-001", standard="ASME_IX", status="draft"
+        )
+        resp = self.client.post(reverse("pqr_delete", kwargs={"pk": item.id}))
+        self.assertEqual(resp.status_code, 302)
+        self.assertFalse(models.Pqr.objects.filter(id=item.id).exists())

@@ -55,3 +55,42 @@ class ProjectListUiTests(TestCase):
         self.assertEqual(item.wps_count, 1)
         self.assertEqual(item.pqr_count, 1)
         self.assertEqual(item.welder_count, 1)
+
+    def test_project_copy_creates_new_project_with_equipment(self):
+        project = models.Project.objects.create(
+            name="Project Copy Source",
+            code="00000020",
+            purchase_order="PO-20",
+            units="metric",
+            status="active",
+            standard_set=["ASME_IX"],
+        )
+        models.ProjectEquipment.objects.create(
+            project=project,
+            name="Vessel A",
+            fabrication_code="EQ-001",
+            status="active",
+        )
+
+        response = self.client.post(reverse("project_copy", args=[project.id]))
+        self.assertEqual(response.status_code, 302)
+
+        copied = models.Project.objects.get(code="00000020-COPY")
+        self.assertEqual(copied.name, "Project Copy Source (Copy)")
+        self.assertEqual(
+            models.ProjectEquipment.objects.filter(project=copied).count(),
+            1,
+        )
+
+    def test_project_delete_removes_project(self):
+        project = models.Project.objects.create(
+            name="Project Delete",
+            code="00000030",
+            units="metric",
+            status="active",
+            standard_set=["ASME_IX"],
+        )
+
+        response = self.client.post(reverse("project_delete", args=[project.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(models.Project.objects.filter(id=project.id).exists())

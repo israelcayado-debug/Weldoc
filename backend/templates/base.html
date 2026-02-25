@@ -14,6 +14,13 @@
       .nav a { display: block; color: #e5e7eb; text-decoration: none; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; }
       .nav a:hover { background: #1f2937; }
       .content { margin-left: var(--sidebar-w); padding: 24px; width: 100%; }
+      .topbar { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 16px; }
+      .topbar-right { display: flex; align-items: center; gap: 10px; }
+      .user-badge { background: #e5e7eb; color: #111827; border-radius: 999px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
+      .logout-form { margin: 0; }
+      .logout-btn { border: 1px solid #d1d5db; background: #fff; color: #111827; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+      .logout-btn:hover { background: #f3f4f6; }
+      .login-link { text-decoration: none; color: var(--accent); font-weight: 600; }
       .card { background: var(--card); padding: 16px; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
       .muted { color: var(--muted); }
     </style>
@@ -32,6 +39,19 @@
         </nav>
       </aside>
       <main class="content">
+        <header class="topbar">
+          <div class="topbar-right">
+            {% if request.user.is_authenticated %}
+              <span class="user-badge">Usuario: {{ request.user.get_username }}</span>
+              <form class="logout-form" method="post" action="/api-auth/logout/">
+                {% csrf_token %}
+                <button class="logout-btn" type="submit">Cerrar sesion</button>
+              </form>
+            {% else %}
+              <a class="login-link" href="/api-auth/login/">Iniciar sesion</a>
+            {% endif %}
+          </div>
+        </header>
         {% block content %}{% endblock %}
       </main>
     </div>

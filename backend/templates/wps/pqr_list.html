@@ -3,21 +3,38 @@
 {% block content %}
   <style>
     .pqr-head { margin-bottom: 12px; }
-    .pqr-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-    .pqr-filters input { padding: 8px; border: 1px solid #cfd4dc; border-radius: 6px; min-width: 170px; }
+    .pqr-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .pqr-filters input { padding: 8px; border: 1px solid #cfd4dc; border-radius: 6px; min-width: 200px; }
     .pqr-filters button { padding: 8px 12px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
     .pqr-links { margin-bottom: 12px; }
+    .column-picker { background: #fff; border: 1px solid #d7dde7; border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+    .column-picker h3 { margin: 0 0 8px 0; font-size: 14px; }
+    .column-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px 10px; }
+    .column-grid label { font-size: 13px; display: flex; gap: 6px; align-items: center; }
     .table-wrap { overflow-x: auto; border: 1px solid #d7dde7; border-radius: 8px; background: #fff; }
-    .pqr-table { width: 100%; border-collapse: collapse; min-width: 2200px; font-size: 13px; }
-    .pqr-table th, .pqr-table td { padding: 8px; border-bottom: 1px solid #edf0f4; white-space: nowrap; }
+    .pqr-table { width: 100%; border-collapse: collapse; min-width: 1100px; font-size: 13px; }
+    .pqr-table th, .pqr-table td { padding: 8px; border-bottom: 1px solid #edf0f4; white-space: nowrap; text-align: center; vertical-align: middle; }
     .pqr-table th { background: #f2f4f7; text-transform: uppercase; font-size: 12px; letter-spacing: .02em; }
-    .pqr-table td.actions, .pqr-table th.actions { text-align: right; }
     .status { font-size: 12px; color: #6b7280; }
+    .actions-cell { text-align: center; white-space: nowrap; }
+    .actions-cell form { display: inline-block; margin: 0; }
+    .icon-btn {
+      padding: 2px 6px;
+      min-width: 26px;
+      height: 24px;
+      font-size: 12px;
+      line-height: 1;
+      margin-right: 3px;
+      cursor: pointer;
+    }
   </style>
 
   <h1 class="pqr-head">Listado PQR (ASME IX)</h1>
   <form method="get" class="pqr-filters">
-    <input type="text" name="q" placeholder="Buscar código PQR" value="{{ request.GET.q }}">
+    <input type="text" name="q" placeholder="Buscar codigo PQR" value="{{ request.GET.q }}">
+    {% for key in selected_column_keys %}
+      <input type="hidden" name="cols" value="{{ key }}">
+    {% endfor %}
     <button type="submit">Buscar</button>
   </form>
   <p class="pqr-links">
@@ -25,74 +42,66 @@
     <a href="/ui/wps/">Volver a WPS</a>
   </p>
 
+  <form method="get" class="column-picker">
+    <h3>Columnas visibles</h3>
+    <input type="hidden" name="q" value="{{ request.GET.q }}">
+    <div class="column-grid">
+      {% for col in all_columns %}
+        <label>
+          <input type="checkbox" name="cols" value="{{ col.key }}" {% if col.key in selected_column_keys %}checked{% endif %}>
+          {{ col.label }}
+        </label>
+      {% endfor %}
+    </div>
+    <p style="margin: 10px 0 0 0;"><button type="submit">Aplicar columnas</button></p>
+  </form>
+
   <div class="table-wrap">
     <table class="pqr-table">
       <thead>
         <tr>
-          <th>PQR N.°</th>
-          <th>Proceso</th>
-          <th>T (mm)</th>
-          <th>N.° P</th>
-          <th>N.° F GTAW</th>
-          <th>N.° A GTAW</th>
-          <th>N.° F SMAW</th>
-          <th>N.° A SMAW</th>
-          <th>t max GTAW</th>
-          <th>t max SMAW</th>
-          <th>GTAW Filler and Form</th>
-          <th>Preheat</th>
-          <th>PWHT</th>
-          <th>Gas protección</th>
-          <th>AWS SFA GTAW</th>
-          <th>AWS SFA SMAW</th>
-          <th>Tª entre pasadas</th>
-          <th>A. térmic. GTAW KJ/cm</th>
-          <th>A. térmic. SMAW KJ/cm</th>
-          <th>N° A M. Base</th>
-          <th>Posición</th>
-          <th>Gas respaldo</th>
-          <th class="actions">PDF escaneado</th>
+          <th>PQR</th>
+          {% for col in selected_columns %}
+            <th>{{ col.label }}</th>
+          {% endfor %}
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        {% for item in items %}
+        {% for row in rows %}
           <tr>
             <td>
-              <a href="/ui/pqr/{{ item.id }}/">{{ item.code }}</a><br>
-              <span class="status">{{ item.status }}</span>
+              <a href="/ui/pqr/{{ row.item.id }}/">{{ row.item.code }}</a><br>
+              <span class="status">{{ row.item.status }}</span>
             </td>
-            <td>{{ item.display_process }}</td>
-            <td>{{ item.display_thickness }}</td>
-            <td>{{ item.display_p_no }}</td>
-            <td>{{ item.display_f_gtaw }}</td>
-            <td>{{ item.display_a_gtaw }}</td>
-            <td>{{ item.display_f_smaw }}</td>
-            <td>{{ item.display_a_smaw }}</td>
-            <td>{{ item.display_t_max_gtaw }}</td>
-            <td>{{ item.display_t_max_smaw }}</td>
-            <td>{{ item.display_gtaw_filler_form }}</td>
-            <td>{{ item.display_preheat }}</td>
-            <td>{{ item.display_pwht }}</td>
-            <td>{{ item.display_gas_protection }}</td>
-            <td>{{ item.display_aws_sfa_gtaw }}</td>
-            <td>{{ item.display_aws_sfa_smaw }}</td>
-            <td>{{ item.display_interpass_temp }}</td>
-            <td>{{ item.display_heat_input_gtaw }}</td>
-            <td>{{ item.display_heat_input_smaw }}</td>
-            <td>{{ item.display_base_metal_a_no }}</td>
-            <td>{{ item.display_position }}</td>
-            <td>{{ item.display_gas_backing }}</td>
-            <td class="actions">
-              {% if item.scanned_pdf %}
-                <a href="{{ item.scanned_pdf.url }}" target="_blank" rel="noopener">Descargar PDF</a>
-              {% else %}
-                <span class="muted">Sin escaneado</span>
-              {% endif %}
+            {% for cell in row.cells %}
+              <td>
+                {% if cell.key == "pdf_scanned" %}
+                  {% if cell.has_pdf %}
+                    <a href="{{ cell.pdf_url }}" target="_blank" rel="noopener">Descargar PDF</a>
+                  {% else %}
+                    <span class="muted">Sin escaneado</span>
+                  {% endif %}
+                {% else %}
+                  {{ cell.value }}
+                {% endif %}
+              </td>
+            {% endfor %}
+            <td class="actions-cell">
+              <a href="/ui/pqr/{{ row.item.id }}/edit/"><button class="icon-btn" type="button" title="Edit">&#9998;</button></a>
+              <form method="post" action="/ui/pqr/{{ row.item.id }}/copy/" style="display:inline;">
+                {% csrf_token %}
+                <button class="icon-btn" type="submit" title="Copy">&#128203;</button>
+              </form>
+              <form method="post" action="/ui/pqr/{{ row.item.id }}/delete/" style="display:inline;" onsubmit="return confirm('Delete PQR {{ row.item.code }}?');">
+                {% csrf_token %}
+                <button class="icon-btn" type="submit" title="Delete">&#128465;</button>
+              </form>
             </td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="23" class="muted">No hay registros.</td>
+            <td colspan="20" class="muted">No hay registros.</td>
           </tr>
         {% endfor %}
       </tbody>

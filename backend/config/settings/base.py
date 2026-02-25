@@ -93,7 +93,7 @@ REST_FRAMEWORK = {
 }
 
 LOGIN_URL = "/api-auth/login/"
-LOGIN_REDIRECT_URL = "/api/"
+LOGIN_REDIRECT_URL = "/ui/projects/"
 LOGOUT_REDIRECT_URL = "/api-auth/login/"
 
 TEST_RUNNER = "config.test_runner.AppLabelDiscoverRunner"

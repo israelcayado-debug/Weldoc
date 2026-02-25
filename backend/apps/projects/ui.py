@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
 from . import models
@@ -9,6 +10,16 @@ from apps.documents import models as document_models
 from apps.quality import models as quality_models
 from apps.welds import models as weld_models
 from apps.wps import models as wps_models
+
+
+def _project_copy_code(base_code):
+    for index in range(1, 1000):
+        suffix = "-COPY" if index == 1 else f"-COPY-{index}"
+        trimmed_base = base_code[: max(1, 100 - len(suffix))]
+        candidate = f"{trimmed_base}{suffix}"
+        if not models.Project.objects.filter(code=candidate).exists():
+            return candidate
+    return f"{base_code[:91]}-COPY-999"
 
 
 @login_required
@@ -123,6 +134,48 @@ def project_edit(request, pk):
     else:
         form = ProjectForm(instance=item)
     return render(request, "projects/form.html", {"form": form, "title": "Edit project"})
+
+
+@login_required
+def project_copy(request, pk):
+    if request.method != "POST":
+        return redirect("project_list")
+
+    source = get_object_or_404(models.Project, pk=pk)
+    copy_code = _project_copy_code(source.code)
+
+    with transaction.atomic():
+        project_copy = models.Project.objects.create(
+            client=source.client,
+            name=f"{source.name} (Copy)",
+            code=copy_code,
+            purchase_order=source.purchase_order,
+            units=source.units,
+            status=source.status,
+            standard_set=source.standard_set,
+        )
+        source_equipment = models.ProjectEquipment.objects.filter(project=source)
+        models.ProjectEquipment.objects.bulk_create(
+            [
+                models.ProjectEquipment(
+                    project=project_copy,
+                    name=item.name,
+                    fabrication_code=item.fabrication_code,
+                    status=item.status,
+                )
+                for item in source_equipment
+            ]
+        )
+
+    return redirect("project_detail", pk=project_copy.pk)
+
+
+@login_required
+def project_delete(request, pk):
+    if request.method == "POST":
+        item = get_object_or_404(models.Project, pk=pk)
+        item.delete()
+    return redirect("project_list")
 
 
 @login_required

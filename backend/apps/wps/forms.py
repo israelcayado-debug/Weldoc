@@ -152,6 +152,10 @@ class PqrQuickCreateForm(forms.Form):
     itm_signature = forms.CharField(max_length=120, label="FIRMA ITM")
     notes = forms.CharField(max_length=300, label="NOTAS", required=False)
 
+    def __init__(self, *args, **kwargs):
+        self.pqr_instance = kwargs.pop("pqr_instance", None)
+        super().__init__(*args, **kwargs)
+
     def clean_status(self):
         status = self.cleaned_data["status"]
         if status not in ("draft", "in_review", "approved", "archived"):
@@ -160,7 +164,10 @@ class PqrQuickCreateForm(forms.Form):
 
     def clean_code(self):
         code = (self.cleaned_data.get("code") or "").strip()
-        if models.Pqr.objects.filter(code=code).exists():
+        existing = models.Pqr.objects.filter(code=code)
+        if self.pqr_instance:
+            existing = existing.exclude(pk=self.pqr_instance.pk)
+        if existing.exists():
             raise forms.ValidationError("PQR code already exists.")
         return code
 

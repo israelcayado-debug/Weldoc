@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
+  <style>
+    .icon-btn {
+      padding: 2px 6px;
+      min-width: 26px;
+      height: 24px;
+      font-size: 12px;
+      line-height: 1;
+      margin-right: 3px;
+      cursor: pointer;
+    }
+  </style>
   <h1>Welding Book</h1>
   <form method="get">
     <input type="text" name="q" placeholder="Search title / project" value="{{ request.GET.q }}">
@@ -19,6 +30,7 @@
           <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">Welding List</th>
           <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">WPS</th>
           <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">PQR</th>
+          <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding: 8px;">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -31,10 +43,21 @@
             <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.welding_list_count }}</td>
             <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.wps_count }}</td>
             <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right;">{{ item.pqr_count }}</td>
+            <td style="border-bottom: 1px solid #f0f2f5; padding: 8px; text-align: right; white-space: nowrap;">
+              <a href="/ui/documents/{{ item.id }}/edit/"><button class="icon-btn" type="button" title="Edit">&#9998;</button></a>
+              <form method="post" action="/ui/documents/{{ item.id }}/copy/" style="display: inline;">
+                {% csrf_token %}
+                <button class="icon-btn" type="submit" title="Copy">&#128203;</button>
+              </form>
+              <form method="post" action="/ui/documents/{{ item.id }}/delete/" style="display: inline;" onsubmit="return confirm('Se borrara el Welding Book y sus revisiones. Continuar?');">
+                {% csrf_token %}
+                <button class="icon-btn" type="submit" title="Delete">&#128465;</button>
+              </form>
+            </td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="7" style="padding: 12px;" class="muted">No records.</td>
+            <td colspan="8" style="padding: 12px;" class="muted">No records.</td>
           </tr>
         {% endfor %}
       </tbody>

@@ -346,6 +346,115 @@ def _next_copy_code(wps):
     return candidate
 
 
+def _next_pqr_copy_code(pqr):
+    base = f"{pqr.code}-COPY"
+    candidate = base
+    index = 2
+    while models.Pqr.objects.filter(project=pqr.project, code=candidate).exists():
+        candidate = f"{base}-{index}"
+        index += 1
+    return candidate
+
+
+def _pqr_result_payload(cleaned_data):
+    return {
+        "processes": cleaned_data.get("processes"),
+        "thickness_range": cleaned_data.get("thickness_range"),
+        "material_1": cleaned_data.get("material_1"),
+        "p_group_1": cleaned_data.get("p_group_1"),
+        "material_2": cleaned_data.get("material_2"),
+        "p_group_2": cleaned_data.get("p_group_2"),
+        "material_pno": cleaned_data.get("p_group"),
+        "filler_fno": cleaned_data.get("filler_fno_gtaw"),
+        "filler_fno_gtaw": cleaned_data.get("filler_fno_gtaw"),
+        "a_no_gtaw": cleaned_data.get("a_no_gtaw"),
+        "filler_fno_smaw": cleaned_data.get("filler_fno_smaw"),
+        "a_no_smaw": cleaned_data.get("a_no_smaw"),
+        "gtaw_filler_form": cleaned_data.get("gtaw_filler_form"),
+        "diameter": cleaned_data.get("diameter"),
+        "thickness_test_coupon": cleaned_data.get("thickness_test_coupon"),
+        "t_max_gtaw": cleaned_data.get("t_max_gtaw"),
+        "t_max_smaw": cleaned_data.get("t_max_smaw"),
+        "preheat": cleaned_data.get("preheat"),
+        "pwht": cleaned_data.get("pwht"),
+        "gas_protection": cleaned_data.get("gas_protection"),
+        "aws_sfa_gtaw": cleaned_data.get("aws_sfa_gtaw"),
+        "aws_sfa_smaw": cleaned_data.get("aws_sfa_smaw"),
+        "interpass_temp": cleaned_data.get("interpass_temp"),
+        "heat_input_gtaw": cleaned_data.get("heat_input_gtaw"),
+        "heat_input_smaw": cleaned_data.get("heat_input_smaw"),
+        "base_metal_a_no": cleaned_data.get("base_metal_a_no"),
+        "position": cleaned_data.get("position"),
+        "gas_backing": cleaned_data.get("gas_backing"),
+        "end": cleaned_data.get("end_requirements"),
+        "itm_signature": cleaned_data.get("itm_signature"),
+        "notes": cleaned_data.get("notes"),
+    }
+
+
+def _sync_pqr_results(item, cleaned_data):
+    existing = {
+        row.test_type: row for row in models.PqrResult.objects.filter(pqr=item)
+    }
+    result_map = _pqr_result_payload(cleaned_data)
+    for test_type, value in result_map.items():
+        text = "" if value is None else str(value).strip()
+        current = existing.pop(test_type, None)
+        if not text:
+            if current:
+                current.delete()
+            continue
+        if current:
+            if current.result != text:
+                current.result = text
+                current.save(update_fields=["result"])
+            continue
+        models.PqrResult.objects.create(pqr=item, test_type=test_type, result=text)
+    for leftover in existing.values():
+        leftover.delete()
+
+
+def _pqr_form_initial(item):
+    result_map = {
+        row.test_type: row.result for row in models.PqrResult.objects.filter(pqr=item)
+    }
+    return {
+        "code": item.code,
+        "standard": item.standard,
+        "status": item.status,
+        "processes": result_map.get("processes", ""),
+        "thickness_range": result_map.get("thickness_range", ""),
+        "material_1": result_map.get("material_1", ""),
+        "p_group_1": result_map.get("p_group_1", ""),
+        "material_2": result_map.get("material_2", ""),
+        "p_group_2": result_map.get("p_group_2", ""),
+        "p_group": result_map.get("material_pno", ""),
+        "filler_fno_gtaw": result_map.get("filler_fno_gtaw", result_map.get("filler_fno", "")),
+        "a_no_gtaw": result_map.get("a_no_gtaw", ""),
+        "filler_fno_smaw": result_map.get("filler_fno_smaw", ""),
+        "a_no_smaw": result_map.get("a_no_smaw", ""),
+        "gtaw_filler_form": result_map.get("gtaw_filler_form", ""),
+        "diameter": result_map.get("diameter", ""),
+        "thickness_test_coupon": result_map.get("thickness_test_coupon", ""),
+        "t_max_gtaw": result_map.get("t_max_gtaw", ""),
+        "t_max_smaw": result_map.get("t_max_smaw", ""),
+        "preheat": result_map.get("preheat", ""),
+        "pwht": result_map.get("pwht", ""),
+        "gas_protection": result_map.get("gas_protection", ""),
+        "aws_sfa_gtaw": result_map.get("aws_sfa_gtaw", ""),
+        "aws_sfa_smaw": result_map.get("aws_sfa_smaw", ""),
+        "interpass_temp": result_map.get("interpass_temp", ""),
+        "heat_input_gtaw": result_map.get("heat_input_gtaw", ""),
+        "heat_input_smaw": result_map.get("heat_input_smaw", ""),
+        "base_metal_a_no": result_map.get("base_metal_a_no", ""),
+        "position": result_map.get("position", ""),
+        "gas_backing": result_map.get("gas_backing", ""),
+        "end_requirements": result_map.get("end", ""),
+        "itm_signature": result_map.get("itm_signature", ""),
+        "notes": result_map.get("notes", ""),
+    }
+
+
 def _result_value(result_map, *keys):
     for key in keys:
         value = result_map.get(key)
@@ -502,6 +611,37 @@ def wps_delete(request, pk):
 @login_required
 def pqr_list(request):
     q = request.GET.get("q")
+    all_columns = [
+        {"key": "process", "label": "Proceso"},
+        {"key": "thickness", "label": "T (mm)"},
+        {"key": "p_no", "label": "N. P"},
+        {"key": "f_gtaw", "label": "N. F GTAW"},
+        {"key": "a_gtaw", "label": "N. A GTAW"},
+        {"key": "f_smaw", "label": "N. F SMAW"},
+        {"key": "a_smaw", "label": "N. A SMAW"},
+        {"key": "t_max_gtaw", "label": "t max GTAW"},
+        {"key": "t_max_smaw", "label": "t max SMAW"},
+        {"key": "gtaw_filler_form", "label": "GTAW filler/form"},
+        {"key": "preheat", "label": "Preheat"},
+        {"key": "pwht", "label": "PWHT"},
+        {"key": "gas_protection", "label": "Gas proteccion"},
+        {"key": "aws_sfa_gtaw", "label": "AWS SFA GTAW"},
+        {"key": "aws_sfa_smaw", "label": "AWS SFA SMAW"},
+        {"key": "interpass_temp", "label": "T entre pasadas"},
+        {"key": "heat_input_gtaw", "label": "A. termic. GTAW"},
+        {"key": "heat_input_smaw", "label": "A. termic. SMAW"},
+        {"key": "base_metal_a_no", "label": "N A metal base"},
+        {"key": "position", "label": "Posicion"},
+        {"key": "gas_backing", "label": "Gas respaldo"},
+        {"key": "pdf_scanned", "label": "PDF escaneado"},
+    ]
+    default_column_keys = ["process", "thickness", "p_no", "position", "pdf_scanned"]
+    allowed_keys = {column["key"] for column in all_columns}
+    requested_keys = [key for key in request.GET.getlist("cols") if key in allowed_keys]
+    selected_column_keys = requested_keys or default_column_keys
+    selected_columns = [
+        column for column in all_columns if column["key"] in selected_column_keys
+    ]
     items = (
         models.Pqr.objects.select_related("project")
         .prefetch_related("pqrresult_set")
@@ -509,6 +649,7 @@ def pqr_list(request):
     )
     if q:
         items = items.filter(code__icontains=q)
+    rows = []
     for item in items:
         result_map = {row.test_type: row.result for row in item.pqrresult_set.all()}
         item.display_process = _result_value(result_map, "processes", "process")
@@ -537,7 +678,53 @@ def pqr_list(request):
         item.display_base_metal_a_no = _result_value(result_map, "base_metal_a_no")
         item.display_position = _result_value(result_map, "position")
         item.display_gas_backing = _result_value(result_map, "gas_backing")
-    return render(request, "wps/pqr_list.html", {"items": items})
+        value_map = {
+            "process": item.display_process,
+            "thickness": item.display_thickness,
+            "p_no": item.display_p_no,
+            "f_gtaw": item.display_f_gtaw,
+            "a_gtaw": item.display_a_gtaw,
+            "f_smaw": item.display_f_smaw,
+            "a_smaw": item.display_a_smaw,
+            "t_max_gtaw": item.display_t_max_gtaw,
+            "t_max_smaw": item.display_t_max_smaw,
+            "gtaw_filler_form": item.display_gtaw_filler_form,
+            "preheat": item.display_preheat,
+            "pwht": item.display_pwht,
+            "gas_protection": item.display_gas_protection,
+            "aws_sfa_gtaw": item.display_aws_sfa_gtaw,
+            "aws_sfa_smaw": item.display_aws_sfa_smaw,
+            "interpass_temp": item.display_interpass_temp,
+            "heat_input_gtaw": item.display_heat_input_gtaw,
+            "heat_input_smaw": item.display_heat_input_smaw,
+            "base_metal_a_no": item.display_base_metal_a_no,
+            "position": item.display_position,
+            "gas_backing": item.display_gas_backing,
+        }
+        cells = []
+        for column in selected_columns:
+            key = column["key"]
+            if key == "pdf_scanned":
+                cells.append(
+                    {
+                        "key": key,
+                        "has_pdf": bool(item.scanned_pdf),
+                        "pdf_url": item.scanned_pdf.url if item.scanned_pdf else "",
+                    }
+                )
+                continue
+            cells.append({"key": key, "value": value_map.get(key, "-")})
+        rows.append({"item": item, "cells": cells})
+    return render(
+        request,
+        "wps/pqr_list.html",
+        {
+            "rows": rows,
+            "all_columns": all_columns,
+            "selected_column_keys": selected_column_keys,
+            "selected_columns": selected_columns,
+        },
+    )
 
 
 @login_required
@@ -582,8 +769,63 @@ def pqr_create_tool(request):
     return render(
         request,
         "wps/pqr_create_tool.html",
-        {"form": form, "title": "PQR Creation Tool"},
+        {"form": form, "title": "PQR Creation Tool", "submit_label": "Crear PQR"},
     )
+
+
+@login_required
+def pqr_edit(request, pk):
+    item = get_object_or_404(models.Pqr, pk=pk)
+    if request.method == "POST":
+        form = PqrQuickCreateForm(request.POST, pqr_instance=item)
+        if form.is_valid():
+            item.code = form.cleaned_data["code"]
+            item.standard = form.cleaned_data["standard"]
+            item.status = form.cleaned_data["status"]
+            item.save(update_fields=["code", "standard", "status"])
+            _sync_pqr_results(item, form.cleaned_data)
+            return redirect("pqr_detail", pk=item.pk)
+    else:
+        form = PqrQuickCreateForm(initial=_pqr_form_initial(item), pqr_instance=item)
+    return render(
+        request,
+        "wps/pqr_create_tool.html",
+        {"form": form, "title": "Editar PQR", "submit_label": "Guardar PQR"},
+    )
+
+
+@login_required
+@require_POST
+def pqr_copy(request, pk):
+    source = get_object_or_404(models.Pqr, pk=pk)
+    with transaction.atomic():
+        copied = models.Pqr.objects.create(
+            project=source.project,
+            code=_next_pqr_copy_code(source),
+            standard=source.standard,
+            status="draft",
+            scanned_pdf=None,
+        )
+        models.PqrResult.objects.bulk_create(
+            [
+                models.PqrResult(
+                    pqr=copied,
+                    test_type=row.test_type,
+                    result=row.result,
+                    report_path=row.report_path,
+                )
+                for row in models.PqrResult.objects.filter(pqr=source)
+            ]
+        )
+    return redirect("pqr_detail", pk=copied.pk)
+
+
+@login_required
+@require_POST
+def pqr_delete(request, pk):
+    item = get_object_or_404(models.Pqr, pk=pk)
+    item.delete()
+    return redirect("pqr_list")
 
 
 @login_required

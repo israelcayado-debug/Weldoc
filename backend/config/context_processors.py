@@ -11,9 +11,9 @@ def nav_sections(request):
     user = request.user
     groups = _user_groups(user)
     is_admin = bool(user and user.is_authenticated and (user.is_staff or user.is_superuser))
+    has_assigned_permissions = bool(user and user.is_authenticated and user.get_all_permissions())
 
     nav = [
-        {"label": "Dashboard", "url": "/", "roles": []},
         {"label": "Proyectos", "url": "/ui/projects/", "roles": ["Admin", "Project Manager", "PM"]},
         {"label": "Welding Book", "url": "/ui/documents/", "roles": ["Admin", "QA", "Document Control"]},
         {"label": "WPS", "url": "/ui/wps/", "roles": ["Admin", "Welding", "QA"]},
@@ -28,8 +28,10 @@ def nav_sections(request):
 
     def allowed(item):
         if not user or not user.is_authenticated:
-            return item["label"] == "Dashboard"
+            return False
         if user.is_superuser:
+            return True
+        if has_assigned_permissions:
             return True
         if not item["roles"]:
             return True

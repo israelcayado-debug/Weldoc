@@ -60,7 +60,7 @@
       {% endif %}
     </fieldset>
 
-    <button type="submit">Crear PQR</button>
+    <button type="submit">{{ submit_label|default:"Crear PQR" }}</button>
   </form>
   <p><a href="/ui/pqr/">Back</a></p>
 {% endblock %}

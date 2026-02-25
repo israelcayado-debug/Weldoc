@@ -63,3 +63,44 @@ class WeldingBookUiTests(TestCase):
         self.assertEqual(items[0].welding_list_count, 1)
         self.assertEqual(items[0].wps_count, 1)
         self.assertEqual(items[0].pqr_count, 1)
+
+    def test_document_copy_creates_new_welding_book(self):
+        project = project_models.Project.objects.create(
+            name="Project Copy",
+            code="00000011",
+            units="metric",
+            status="active",
+            standard_set=["ASME_IX"],
+        )
+        source = models.Document.objects.create(
+            project=project,
+            type="Welding Book",
+            title="WB Source",
+            status="active",
+        )
+
+        response = self.client.post(reverse("document_copy", args=[source.id]))
+        self.assertEqual(response.status_code, 302)
+
+        copied = models.Document.objects.get(title="WB Source (Copy)")
+        self.assertEqual(copied.project_id, source.project_id)
+        self.assertEqual(copied.type, "Welding Book")
+
+    def test_document_delete_removes_welding_book(self):
+        project = project_models.Project.objects.create(
+            name="Project Delete",
+            code="00000012",
+            units="metric",
+            status="active",
+            standard_set=["ASME_IX"],
+        )
+        item = models.Document.objects.create(
+            project=project,
+            type="Welding Book",
+            title="WB Delete",
+            status="active",
+        )
+
+        response = self.client.post(reverse("document_delete", args=[item.id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(models.Document.objects.filter(id=item.id).exists())
