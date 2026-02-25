@@ -123,6 +123,48 @@ class WeldingBookUiTests(TestCase):
         self.assertEqual(composition["wps_count"], 1)
         self.assertEqual(composition["pqr_count"], 1)
 
+
+    def test_list_filters_by_equipment_id(self):
+        project = project_models.Project.objects.create(
+            name="Project Filter",
+            code="00000014",
+            units="metric",
+            status="active",
+            standard_set=["ASME_IX"],
+        )
+        eq1 = project_models.ProjectEquipment.objects.create(
+            project=project,
+            name="EQ1",
+            fabrication_code="EQ-1",
+            status="active",
+        )
+        eq2 = project_models.ProjectEquipment.objects.create(
+            project=project,
+            name="EQ2",
+            fabrication_code="EQ-2",
+            status="active",
+        )
+        doc1 = models.Document.objects.create(
+            project=project,
+            equipment=eq1,
+            type="Welding Book",
+            title="WB-EQ1",
+            status="active",
+        )
+        models.Document.objects.create(
+            project=project,
+            equipment=eq2,
+            type="Welding Book",
+            title="WB-EQ2",
+            status="active",
+        )
+
+        response = self.client.get(reverse("document_list"), {"equipment_id": str(eq1.id)})
+        self.assertEqual(response.status_code, 200)
+        items = list(response.context["items"])
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0].id, doc1.id)
+
     def test_document_copy_creates_new_welding_book(self):
         project = project_models.Project.objects.create(
             name="Project Copy",

@@ -49,8 +49,6 @@ def _missing_wps_for_publish(document):
     return list(qs.exclude(status=wps_models.Wps.STATUS_APPROVED).order_by("code"))
 
 
-
-
 def _book_composition(document):
     welding_map_count = (
         weld_models.WeldMap.objects.filter(
@@ -98,24 +96,22 @@ def document_list(request):
         | Q(type__iexact="weldingbook")
         | Q(title__icontains="welding book")
     )
-    items = list(
+    items = (
         models.Document.objects.select_related("project", "equipment")
         .filter(welding_book_filter)
         .order_by("project__code", "title")
     )
     if q:
-        q_lower = q.lower()
-        items = [
-            item
-            for item in items
-            if q_lower in (item.title or "").lower()
-            or q_lower in (item.project.name or "").lower()
-            or q_lower in (item.project.code or "").lower()
-        ]
+        items = items.filter(
+            Q(title__icontains=q)
+            | Q(project__name__icontains=q)
+            | Q(project__code__icontains=q)
+        )
     if project_id:
-        items = [item for item in items if str(item.project_id) == project_id]
+        items = items.filter(project_id=project_id)
     if equipment_id:
-        items = [item for item in items if str(item.equipment_id) == equipment_id]
+        items = items.filter(equipment_id=equipment_id)
+    items = list(items)
     for item in items:
         composition = _book_composition(item)
         item.welding_map_count = composition["welding_map_count"]
