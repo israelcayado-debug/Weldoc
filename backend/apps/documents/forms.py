@@ -17,7 +17,7 @@ class DocumentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["equipment"].required = True
+        self.fields["equipment"].required = False
         project_id = None
         if self.instance and self.instance.project_id:
             project_id = self.instance.project_id
