@@ -3,7 +3,7 @@ import uuid
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from . import models
@@ -16,6 +16,7 @@ from .forms import (
 from apps.projects import models as project_models
 from apps.users import models as user_models
 from apps.wps import models as wps_models
+from apps.welds import models as weld_models
 
 
 def _resolve_app_user(request):
@@ -48,6 +49,34 @@ def _missing_wps_for_publish(document):
     return list(qs.exclude(status=wps_models.Wps.STATUS_APPROVED).order_by("code"))
 
 
+
+
+def _book_composition(document):
+    welding_map_count = (
+        weld_models.WeldMap.objects.filter(
+            project=document.project,
+            drawing__equipment_id=document.equipment_id,
+        ).count()
+        if document.equipment_id
+        else weld_models.WeldMap.objects.filter(project=document.project).count()
+    )
+    weld_scope = weld_models.Weld.objects.filter(project=document.project)
+    if document.equipment_id:
+        weld_scope = weld_scope.filter(drawing__equipment_id=document.equipment_id)
+    welding_list_count = weld_scope.count()
+    wps_scope = wps_models.Wps.objects.filter(project=document.project, is_current=True)
+    if document.equipment_id:
+        wps_scope = wps_scope.filter(equipment_id=document.equipment_id)
+    wps_count = wps_scope.count()
+    pqr_count = wps_models.Pqr.objects.filter(standard="ASME_IX", status="approved").count()
+    return {
+        "welding_map_count": welding_map_count,
+        "welding_list_count": welding_list_count,
+        "wps_count": wps_count,
+        "pqr_count": pqr_count,
+    }
+
+
 def _copy_title(source_title):
     for index in range(1, 1000):
         suffix = " (Copy)" if index == 1 else f" (Copy {index})"
@@ -69,27 +98,30 @@ def document_list(request):
         | Q(type__iexact="weldingbook")
         | Q(title__icontains="welding book")
     )
-    items = (
+    items = list(
         models.Document.objects.select_related("project", "equipment")
         .filter(welding_book_filter)
-        .annotate(
-            welding_map_count=Count("project__weldmap", distinct=True),
-            welding_list_count=Count("project__weld", distinct=True),
-            wps_count=Count("project__wps", distinct=True),
-            pqr_count=Count("project__pqr", distinct=True),
-        )
         .order_by("project__code", "title")
     )
     if q:
-        items = items.filter(
-            Q(title__icontains=q)
-            | Q(project__name__icontains=q)
-            | Q(project__code__icontains=q)
-        )
+        q_lower = q.lower()
+        items = [
+            item
+            for item in items
+            if q_lower in (item.title or "").lower()
+            or q_lower in (item.project.name or "").lower()
+            or q_lower in (item.project.code or "").lower()
+        ]
     if project_id:
-        items = items.filter(project_id=project_id)
+        items = [item for item in items if str(item.project_id) == project_id]
     if equipment_id:
-        items = items.filter(equipment_id=equipment_id)
+        items = [item for item in items if str(item.equipment_id) == equipment_id]
+    for item in items:
+        composition = _book_composition(item)
+        item.welding_map_count = composition["welding_map_count"]
+        item.welding_list_count = composition["welding_list_count"]
+        item.wps_count = composition["wps_count"]
+        item.pqr_count = composition["pqr_count"]
     return render(request, "documents/list.html", {"items": items})
 
 
@@ -105,6 +137,7 @@ def document_detail(request, pk):
     ).select_related("signer", "document_revision")
     publish_error = request.GET.get("publish_error")
     missing_wps = request.GET.get("missing_wps", "")
+    composition = _book_composition(item)
     return render(
         request,
         "documents/detail.html",
@@ -115,6 +148,7 @@ def document_detail(request, pk):
             "signatures": signatures,
             "publish_error": publish_error,
             "missing_wps": missing_wps,
+            "composition": composition,
         },
     )
 

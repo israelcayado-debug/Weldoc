@@ -41,6 +41,25 @@
     <p><a href="/ui/projects/{{ item.id }}/equipment/">Manage equipment</a></p>
   </div>
 
+
+  <div class="card">
+    <h2>Welder qualification (ASME IX)</h2>
+    <ul>
+      {% for row in welder_qualification %}
+        <li>
+          {{ row.welder.name }} -
+          {% if row.has_wpq %}
+            WPQ vigente
+          {% else %}
+            Sin WPQ aprobado
+          {% endif %}
+        </li>
+      {% empty %}
+        <li>No welders assigned in this project.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
   <div class="card">
     <h2>Project team</h2>
     <ul>

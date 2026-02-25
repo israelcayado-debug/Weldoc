@@ -56,6 +56,34 @@ class ProjectListUiTests(TestCase):
         self.assertEqual(item.pqr_count, 1)
         self.assertEqual(item.welder_count, 1)
 
+
+    def test_project_detail_shows_welder_wpq_status(self):
+        project = models.Project.objects.create(
+            name="Project Qualification",
+            code="00000040",
+            units="metric",
+            status="active",
+            standard_set=["ASME_IX"],
+        )
+        weld = weld_models.Weld.objects.create(project=project, number="W-40")
+        welder_ok = wpq_models.Welder.objects.create(name="Welder OK")
+        welder_no = wpq_models.Welder.objects.create(name="Welder NO")
+        weld_models.WeldWelderAssignment.objects.create(weld=weld, welder=welder_ok)
+        weld_models.WeldWelderAssignment.objects.create(weld=weld, welder=welder_no)
+        wpq_models.Wpq.objects.create(
+            welder=welder_ok,
+            code="WPQ-OK",
+            standard="ASME_IX",
+            status="approved",
+        )
+
+        response = self.client.get(reverse("project_detail", args=[project.id]))
+        self.assertEqual(response.status_code, 200)
+        rows = response.context["welder_qualification"]
+        by_name = {row["welder"].name: row["has_wpq"] for row in rows}
+        self.assertTrue(by_name["Welder OK"])
+        self.assertFalse(by_name["Welder NO"])
+
     def test_project_copy_creates_new_project_with_equipment(self):
         project = models.Project.objects.create(
             name="Project Copy Source",

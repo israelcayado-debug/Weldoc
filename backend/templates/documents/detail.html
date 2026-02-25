@@ -5,11 +5,20 @@
   <p>Status: {{ item.status }}</p>
   <p>Project: {{ item.project }}</p>
   <p>
-    Equipment:
+    Equipment scope:
     {% if item.equipment %}
       {{ item.equipment.name }}
+    {% else %}
+      All project equipment
     {% endif %}
   </p>
+  <h2>Book composition</h2>
+  <ul>
+    <li>Welding Map: {{ composition.welding_map_count }}</li>
+    <li>Welding List: {{ composition.welding_list_count }}</li>
+    <li>WPS (current): {{ composition.wps_count }}</li>
+    <li>PQR approved ASME IX (global): {{ composition.pqr_count }}</li>
+  </ul>
   <p>
     <a href="/ui/documents/{{ item.id }}/revisions/new/">New revision</a> |
     <a href="/ui/documents/">Back</a>

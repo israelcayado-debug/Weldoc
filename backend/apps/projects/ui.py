@@ -10,6 +10,7 @@ from apps.documents import models as document_models
 from apps.quality import models as quality_models
 from apps.welds import models as weld_models
 from apps.wps import models as wps_models
+from apps.wpq import models as wpq_models
 
 
 def _project_copy_code(base_code):
@@ -85,6 +86,19 @@ def project_detail(request, pk):
     project_equipment = (
         models.ProjectEquipment.objects.filter(project=item).order_by("name")
     )
+    assigned_welders = (
+        wpq_models.Welder.objects.filter(weldwelderassignment__weld__project=item)
+        .distinct()
+        .order_by("name")
+    )
+    welder_qualification = []
+    for welder in assigned_welders:
+        has_wpq = wpq_models.Wpq.objects.filter(
+            welder=welder,
+            standard="ASME_IX",
+            status="approved",
+        ).exists()
+        welder_qualification.append({"welder": welder, "has_wpq": has_wpq})
     return render(
         request,
         "projects/detail.html",
@@ -101,6 +115,7 @@ def project_detail(request, pk):
             "pressure_tests": pressure_tests,
             "project_users": project_users,
             "project_equipment": project_equipment,
+            "welder_qualification": welder_qualification,
         },
     )
 
